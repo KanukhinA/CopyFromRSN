@@ -1,0 +1,408 @@
+<Window x:Class="SP_CopyFromRSN.UI.CopyFromRsnView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="980" Height="700"
+        MinWidth="640" MinHeight="480"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        AllowsTransparency="True"
+        WindowStartupLocation="CenterScreen"
+        Background="Transparent">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="SpCalendarStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="BaseTextStyle" TargetType="{x:Type Control}">
+                <Setter Property="FontFamily" Value="Arial Narrow"/>
+                <Setter Property="FontSize" Value="14"/>
+            </Style>
+
+            <Style TargetType="Label" BasedOn="{StaticResource BaseTextStyle}">
+                <Setter Property="VerticalAlignment" Value="Center"/>
+            </Style>
+
+            <Style TargetType="TextBox" BasedOn="{StaticResource BaseTextStyle}">
+                <Setter Property="Height" Value="24"/>
+                <Setter Property="Padding" Value="6,2,6,2"/>
+            </Style>
+
+            <Style TargetType="CheckBox" BasedOn="{StaticResource BaseTextStyle}">
+                <Setter Property="VerticalAlignment" Value="Center"/>
+            </Style>
+
+            <Style TargetType="GroupBox" BasedOn="{StaticResource BaseTextStyle}">
+                <Setter Property="BorderBrush" Value="#FF005E96"/>
+            </Style>
+
+            <Style TargetType="TabItem">
+                <Setter Property="FontFamily" Value="Arial Narrow"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Padding" Value="12,6"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            </Style>
+
+            <Style x:Key="RoundedButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="#FFFCFCFC"/>
+                <Setter Property="BorderBrush" Value="#FFC3C3C3"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Foreground" Value="Black"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="FontFamily" Value="Arial Narrow"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border CornerRadius="5"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="#FF0DA9CA"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="BorderBrush" Value="#FF128085"/>
+                    </Trigger>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Opacity" Value="0.6"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border Background="#FFF0F1F2" CornerRadius="10" BorderThickness="1" BorderBrush="#FFC3C3C3">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto" MinHeight="160"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" CornerRadius="10,10,0,0">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                        <GradientStop Color="#FF128288" Offset="0"/>
+                        <GradientStop Color="#FF0DA8C8" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Grid MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Content="Копирование моделей с RSN"
+                           FontFamily="Bahnschrift" FontSize="15"
+                           Foreground="#FFF1F1F1"
+                           HorizontalContentAlignment="Center"
+                           VerticalContentAlignment="Center"/>
+                    <Button Grid.Column="1" Content="X" Width="30" Height="20" Margin="0,5,10,5"
+                            Click="CloseButton_Click" Background="Transparent"
+                            BorderThickness="0" Foreground="#FFF1F1F1" FontWeight="Bold"/>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="1" Margin="16,12,16,0" Padding="8" Background="White"
+                    BorderBrush="#FFE1E7EB" BorderThickness="1" CornerRadius="5">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*" MinWidth="160"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Content="Профиль:" Margin="0,0,8,0"/>
+                    <ComboBox Grid.Column="1" Height="26" MinWidth="160"
+                              IsEditable="True"
+                              ItemsSource="{Binding ProfileNames}"
+                              Text="{Binding ProfileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              SelectionChanged="ProfileComboBox_SelectionChanged"/>
+                    <WrapPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0,8,0,0">
+                        <Button Style="{StaticResource RoundedButtonStyle}" Content="Новый"
+                                MinWidth="80" Height="26" Margin="0,0,4,4" Padding="8,0"
+                                Command="{Binding NewProfileCommand}"/>
+                        <Button Style="{StaticResource RoundedButtonStyle}" Content="Сохранить"
+                                MinWidth="100" Height="26" Margin="0,0,4,4" Padding="8,0"
+                                Command="{Binding SaveProfileCommand}"/>
+                        <Button Style="{StaticResource RoundedButtonStyle}" Content="Удалить"
+                                MinWidth="90" Height="26" Margin="0,0,4,4" Padding="8,0"
+                                Command="{Binding DeleteProfileCommand}"/>
+                        <Button Style="{StaticResource RoundedButtonStyle}" Content="Импорт CSV…"
+                                MinWidth="110" Height="26" Margin="0,0,4,4" Padding="8,0"
+                                Command="{Binding ImportCsvCommand}"/>
+                        <Button Style="{StaticResource RoundedButtonStyle}" Content="Экспорт CSV"
+                                MinWidth="100" Height="26" Margin="0,0,4,4" Padding="8,0"
+                                Command="{Binding ExportCsvCommand}"/>
+                    </WrapPanel>
+                </Grid>
+            </Border>
+
+            <TabControl Grid.Row="2" Margin="16,12,16,0" VerticalAlignment="Stretch">
+                <TabItem Header="Общие">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="12">
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="200"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Label Content="Папка загрузки:"/>
+                                <Grid Grid.Column="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding LocalDownloadFolder, Mode=TwoWay}"/>
+                                    <Button Grid.Column="1" Style="{StaticResource RoundedButtonStyle}"
+                                            Content="…" Width="32" Height="24" Margin="6,0,0,0"
+                                            Command="{Binding BrowseFolderCommand}"/>
+                                </Grid>
+                                <Label Grid.Row="1" Content="RevitServerTool:" Margin="0,8,0,0"/>
+                                <Grid Grid.Row="1" Grid.Column="1" Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding RevitServerToolPath, Mode=TwoWay}"
+                                             ToolTip="Нужен только для исходных путей из RSN"/>
+                                    <Button Grid.Column="1" Style="{StaticResource RoundedButtonStyle}"
+                                            Content="…" Width="32" Height="24" Margin="6,0,0,0"
+                                            Command="{Binding BrowseToolPathCommand}"/>
+                                </Grid>
+                            </Grid>
+                            <CheckBox Content="Заменять пути связанных файлов (RepathLinks)"
+                                      IsChecked="{Binding RepathLinks, Mode=TwoWay}" Margin="0,0,0,8"/>
+                            <CheckBox Content="Подавлять предупреждения при открытии моделей (апдейтеры, потеря элементов при импорте и др.)"
+                                      IsChecked="{Binding SuppressOpenWarnings, Mode=TwoWay}"
+                                      ToolTip="Автоматически закрывает диалоги Revit при пакетном копировании, в том числе «Потеря элементов при импорте»"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <TabItem Header="Модели">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <CheckBox Content="Revit Server"
+                                          IsChecked="{Binding UseSourceRevitServer, Mode=TwoWay}"
+                                          Margin="0,0,0,2"
+                                          ToolTip="Включите, если для исходного пути нужно использовать сервер RSN из поля ниже"/>
+                                <Label Content="Исходный сервер RSN" Padding="0,0,0,2"/>
+                                <TextBox Text="{Binding SourceServer, Mode=TwoWay}"
+                                         IsEnabled="{Binding UseSourceRevitServer}"
+                                         ToolTip="Используется только если в таблице указан относительный путь на RSN"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <CheckBox Content="Revit Server"
+                                          IsChecked="{Binding UseTargetRevitServer, Mode=TwoWay}"
+                                          Margin="0,0,0,2"
+                                          ToolTip="Включите, если для целевого пути нужно использовать сервер RSN из поля ниже"/>
+                                <Label Content="Целевой сервер RSN" Padding="0,0,0,2"/>
+                                <TextBox Text="{Binding TargetServer, Mode=TwoWay}"
+                                         IsEnabled="{Binding UseTargetRevitServer}"
+                                         ToolTip="Используется только если в таблице указан относительный путь на RSN"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Grid.Row="1" Margin="0,0,0,8"
+                                   TextWrapping="Wrap"
+                                   Foreground="#FF5A6570"
+                                   FontStyle="Italic"
+                                   Text="В таблице ниже можно указывать относительный путь на RSN, полный путь вида RSN://server/... или обычный файловый путь C:\...\model.rvt / \\server\share\...\model.rvt. Галочка Revit Server нужна только для относительных RSN-путей."/>
+                        <DataGrid Grid.Row="2"
+                                  ItemsSource="{Binding Models}"
+                                  SelectedItem="{Binding SelectedModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  SelectionMode="Single"
+                                  SelectionUnit="FullRow"
+                                  AutoGenerateColumns="False" CanUserAddRows="False"
+                                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                  BorderBrush="#FF005E96">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Исходный путь к модели"
+                                                    Binding="{Binding SourcePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    Width="*"/>
+                                <DataGridTextColumn Header="Целевой путь к модели"
+                                                    Binding="{Binding TargetPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button Style="{StaticResource RoundedButtonStyle}" Content="Добавить"
+                                    Width="100" Height="26" Command="{Binding AddModelCommand}"/>
+                            <Button Style="{StaticResource RoundedButtonStyle}" Content="Удалить"
+                                    Width="100" Height="26" Margin="8,0,0,0"
+                                    Command="{Binding RemoveModelCommand}"/>
+                        </StackPanel>
+                    </Grid>
+                </TabItem>
+
+                <TabItem Header="Связи">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <DataGrid ItemsSource="{Binding Links}"
+                                  SelectedItem="{Binding SelectedLink, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  SelectionMode="Single"
+                                  SelectionUnit="FullRow"
+                                  AutoGenerateColumns="False" CanUserAddRows="False"
+                                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                  BorderBrush="#FF005E96"
+                                  IsEnabled="{Binding RepathLinks}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Модель" Binding="{Binding ModelName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="160"/>
+                                <DataGridTextColumn Header="Старый путь" Binding="{Binding OldPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                                <DataGridTextColumn Header="Новый путь" Binding="{Binding NewPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button Style="{StaticResource RoundedButtonStyle}" Content="Добавить"
+                                    Width="100" Height="26" Command="{Binding AddLinkCommand}"/>
+                            <Button Style="{StaticResource RoundedButtonStyle}" Content="Удалить"
+                                    Width="100" Height="26" Margin="8,0,0,0"
+                                    Command="{Binding RemoveLinkCommand}"/>
+                        </StackPanel>
+                    </Grid>
+                </TabItem>
+
+                <TabItem Header="Расписание">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <Grid Margin="12" MinWidth="620">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" MinWidth="220"/>
+                                <ColumnDefinition Width="140" MinWidth="120"/>
+                                <ColumnDefinition Width="220" MinWidth="180"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.ColumnSpan="3" Margin="0,0,0,12">
+                                <CheckBox Content="Включить автоматический запуск по расписанию"
+                                          IsChecked="{Binding ScheduleEnabled, Mode=TwoWay}"/>
+                                <TextBlock TextWrapping="Wrap" Margin="0,8,0,0"
+                                           Foreground="#FF5A6570" FontStyle="Italic"
+                                           Text="Автозапуск идёт по локальному времени компьютера. Чтобы он сработал, окно плагина нужно держать открытым — после закрытия расписание не проверяется."/>
+                            </StackPanel>
+                            <!-- Календарь, дни и время — в одной строке, без пустого места посередине -->
+                            <StackPanel Grid.Row="1">
+                                <Calendar SelectedDate="{Binding SelectedCalendarDate, Mode=TwoWay}"
+                                          DisplayMode="Month" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                                <TextBlock Text="{Binding CalendarHint}" TextWrapping="Wrap"
+                                           Foreground="#FF005E96" Margin="0,4,0,0"/>
+                            </StackPanel>
+                            <GroupBox Grid.Row="1" Grid.Column="1" Header="Дни недели" BorderBrush="#FF005E96"
+                                      Margin="16,0,0,0" VerticalAlignment="Top">
+                                <ItemsControl ItemsSource="{Binding WeekDayOptions}" Margin="8">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox Content="{Binding Title}"
+                                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                      Margin="0,4"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </GroupBox>
+                            <GroupBox Grid.Row="1" Grid.Column="2" Header="Время запуска" BorderBrush="#FF005E96"
+                                      Margin="12,0,0,0" VerticalAlignment="Top">
+                                <StackPanel Margin="8">
+                                    <ListBox ItemsSource="{Binding RunTimes}"
+                                             SelectedItem="{Binding SelectedRunTime, Mode=TwoWay}"
+                                             MinHeight="80" MaxHeight="160" Margin="0,0,0,8"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Text="{Binding NewRunTime, Mode=TwoWay}"
+                                                 ToolTip="Формат ЧЧ:ММ"/>
+                                        <Button Grid.Column="1" Style="{StaticResource RoundedButtonStyle}"
+                                                Content="+" Width="32" Height="26" Margin="6,0,0,0"
+                                                Command="{Binding AddRunTimeCommand}"/>
+                                        <Button Grid.Column="2" Style="{StaticResource RoundedButtonStyle}"
+                                                Content="−" Width="32" Height="26" Margin="6,0,0,0"
+                                                Command="{Binding RemoveRunTimeCommand}"/>
+                                    </Grid>
+                                </StackPanel>
+                            </GroupBox>
+                        </Grid>
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
+
+            <Border Grid.Row="3" Margin="16,8,16,0" Padding="8,6"
+                    Background="White" BorderBrush="#FFE1E7EB" BorderThickness="1" CornerRadius="4">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <!-- Выделяемый текст — можно копировать Ctrl+C -->
+                    <TextBox Text="{Binding StatusText, Mode=OneWay}"
+                             IsReadOnly="True"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             FontFamily="Arial Narrow"
+                             FontSize="13"
+                             MinHeight="140"
+                             MaxHeight="240"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Disabled"
+                             ToolTip="Выделите текст и скопируйте (Ctrl+C)"/>
+                    <Button Grid.Column="1" Style="{StaticResource RoundedButtonStyle}"
+                            Content="Копировать" MinWidth="90" Height="26" Margin="8,0,0,0"
+                            VerticalAlignment="Top"
+                            Command="{Binding CopyStatusCommand}"
+                            ToolTip="Скопировать текст статуса/ошибки в буфер обмена"/>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="4" Margin="16,12,16,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Style="{StaticResource RoundedButtonStyle}" Content="Сохранить"
+                        MinWidth="120" Height="28" HorizontalAlignment="Left"
+                        Command="{Binding SaveProfileCommand}"
+                        ToolTip="Сохранить профиль без закрытия окна"/>
+                <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource RoundedButtonStyle}" Content="Запустить сейчас"
+                            MinWidth="150" Height="28" Margin="0,0,8,4" Padding="8,0"
+                            Command="{Binding RunNowCommand}"/>
+                    <Button Style="{StaticResource RoundedButtonStyle}" Content="Отмена"
+                            MinWidth="100" Height="28" Margin="0,0,0,4" Click="CloseButton_Click"/>
+                </WrapPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

@@ -1,0 +1,96 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <UseWPF>true</UseWPF>
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+    <Configurations>R2022;R2023;R2025;R2026</Configurations>
+    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'R2025' Or '$(Configuration)' == 'R2026'">
+    <TargetFrameworks>net8.0-windows</TargetFrameworks>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' != 'R2025' And '$(Configuration)' != 'R2026'">
+    <TargetFrameworks>net48</TargetFrameworks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <DefineConstants>$(DefineConstants);REVIT_LONG_ELEMENT_ID</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'R2022' Or '$(Configuration)' == '' Or '$(Configuration)' == 'Debug' Or '$(Configuration)' == 'Release'">
+    <OutputPath>bin\R2022\</OutputPath>
+    <DefineConstants>$(DefineConstants);R2022</DefineConstants>
+    <RevitVersion>2022</RevitVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'R2023'">
+    <OutputPath>bin\R2023\</OutputPath>
+    <DefineConstants>$(DefineConstants);R2023</DefineConstants>
+    <RevitVersion>2023</RevitVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'R2025'">
+    <OutputPath>bin\R2025\</OutputPath>
+    <DefineConstants>$(DefineConstants);R2025</DefineConstants>
+    <RevitVersion>2025</RevitVersion>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'R2026'">
+    <OutputPath>bin\R2026\</OutputPath>
+    <DefineConstants>$(DefineConstants);R2026</DefineConstants>
+    <RevitVersion>2026</RevitVersion>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <Choose>
+    <When Condition="'$(TargetFramework)' == 'net48' And '$(Configuration)' == 'R2023'">
+      <ItemGroup>
+        <RevitApiReference Include="RevitAPI">
+          <HintPath>C:\Program Files\Autodesk\Revit 2023\RevitAPI.dll</HintPath>
+          <Private>false</Private>
+        </RevitApiReference>
+        <RevitApiReference Include="RevitAPIUI">
+          <HintPath>C:\Program Files\Autodesk\Revit 2023\RevitAPIUI.dll</HintPath>
+          <Private>false</Private>
+        </RevitApiReference>
+      </ItemGroup>
+    </When>
+    <When Condition="'$(TargetFramework)' == 'net48'">
+      <ItemGroup>
+        <RevitApiReference Include="RevitAPI">
+          <HintPath>C:\Program Files\Autodesk\Revit 2022\RevitAPI.dll</HintPath>
+          <Private>false</Private>
+        </RevitApiReference>
+        <RevitApiReference Include="RevitAPIUI">
+          <HintPath>C:\Program Files\Autodesk\Revit 2022\RevitAPIUI.dll</HintPath>
+          <Private>false</Private>
+        </RevitApiReference>
+      </ItemGroup>
+    </When>
+    <When Condition="'$(TargetFramework)' == 'net8.0-windows' And '$(Configuration)' == 'R2026'">
+      <ItemGroup>
+        <RevitApiReference Include="RevitAPI">
+          <HintPath>C:\Program Files\Autodesk\Revit 2026\RevitAPI.dll</HintPath>
+          <Private>false</Private>
+        </RevitApiReference>
+        <RevitApiReference Include="RevitAPIUI">
+          <HintPath>C:\Program Files\Autodesk\Revit 2026\RevitAPIUI.dll</HintPath>
+          <Private>false</Private>
+        </RevitApiReference>
+      </ItemGroup>
+    </When>
+    <When Condition="'$(TargetFramework)' == 'net8.0-windows'">
+      <ItemGroup>
+        <RevitApiReference Include="RevitAPI">
+          <HintPath>C:\Program Files\Autodesk\Revit 2025\RevitAPI.dll</HintPath>
+          <Private>false</Private>
+        </RevitApiReference>
+        <RevitApiReference Include="RevitAPIUI">
+          <HintPath>C:\Program Files\Autodesk\Revit 2025\RevitAPIUI.dll</HintPath>
+          <Private>false</Private>
+        </RevitApiReference>
+      </ItemGroup>
+    </When>
+  </Choose>
+</Project>

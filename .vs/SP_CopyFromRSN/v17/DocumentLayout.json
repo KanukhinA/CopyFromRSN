@@ -1,0 +1,52 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Kanuhin_A\\source\\repos\\SP\\SP_CopyFromRSN\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{4BDFB750-F240-46B9-9551-760979554C90}|SP_CopyFromRSN.csproj|c:\\users\\kanuhin_a\\source\\repos\\sp\\sp_copyfromrsn\\ui\\copyfromrsnview.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{4BDFB750-F240-46B9-9551-760979554C90}|SP_CopyFromRSN.csproj|solutionrelative:ui\\copyfromrsnview.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 1,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedHeight": 330,
+          "SelectedChildIndex": 3,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "CopyFromRsnView.xaml",
+              "DocumentMoniker": "C:\\Users\\Kanuhin_A\\source\\repos\\SP\\SP_CopyFromRSN\\UI\\CopyFromRsnView.xaml",
+              "RelativeDocumentMoniker": "UI\\CopyFromRsnView.xaml",
+              "ToolTip": "C:\\Users\\Kanuhin_A\\source\\repos\\SP\\SP_CopyFromRSN\\UI\\CopyFromRsnView.xaml",
+              "RelativeToolTip": "UI\\CopyFromRsnView.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-07-22T12:00:18.689Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

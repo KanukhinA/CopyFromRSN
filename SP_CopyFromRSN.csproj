@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>SP_CopyFromRSN</RootNamespace>
+    <AssemblyName>SP_CopyFromRSN</AssemblyName>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="@(RevitApiReference)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="SP_CopyFromRSN.addin" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\icon16.png" LogicalName="SP_CopyFromRSN.Assets.icon16.png" />
+    <EmbeddedResource Include="Assets\icon32.png" LogicalName="SP_CopyFromRSN.Assets.icon32.png" />
+  </ItemGroup>
+
+  <Target Name="CopyToDist" AfterTargets="Build"
+          Condition="'$(TargetFramework)' != ''">
+    <PropertyGroup>
+      <DistDir>$(ProjectDir)dist\R$(RevitVersion)\</DistDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(DistDir)" />
+    <ItemGroup>
+      <_DistFiles Include="$(TargetDir)SP_CopyFromRSN.dll" />
+      <_DistFiles Include="$(TargetDir)SP_CopyFromRSN.addin" />
+      <_DistFiles Include="$(TargetDir)CommunityToolkit.Mvvm.dll" Condition="Exists('$(TargetDir)CommunityToolkit.Mvvm.dll')" />
+      <_DistFiles Include="$(TargetDir)System.Text.Json.dll" Condition="Exists('$(TargetDir)System.Text.Json.dll')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_DistFiles)" DestinationFolder="$(DistDir)" SkipUnchangedFiles="true" ContinueOnError="true" />
+  </Target>
+
+  <Target Name="DeployRevitAddin" AfterTargets="Build"
+          Condition="'$(TargetFramework)' != ''">
+    <PropertyGroup>
+      <RevitAddinsDir>$(APPDATA)\Autodesk\Revit\Addins\$(RevitVersion)</RevitAddinsDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_DeployFiles Include="$(TargetDir)SP_CopyFromRSN.dll" />
+      <_DeployFiles Include="$(TargetDir)SP_CopyFromRSN.addin" />
+      <_DeployFiles Include="$(TargetDir)CommunityToolkit.Mvvm.dll" Condition="Exists('$(TargetDir)CommunityToolkit.Mvvm.dll')" />
+      <_DeployFiles Include="$(TargetDir)System.Text.Json.dll" Condition="Exists('$(TargetDir)System.Text.Json.dll')" />
+    </ItemGroup>
+    <MakeDir Directories="$(RevitAddinsDir)" />
+    <Copy SourceFiles="@(_DeployFiles)" DestinationFolder="$(RevitAddinsDir)" SkipUnchangedFiles="true" ContinueOnError="WarnAndContinue" />
+    <Message Importance="high" Text="SP_CopyFromRSN ($(TargetFramework)) → $(RevitAddinsDir)" />
+  </Target>
+</Project>

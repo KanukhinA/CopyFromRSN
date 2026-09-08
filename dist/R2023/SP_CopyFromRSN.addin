@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>SP CopyFromRSN</Name>
+    <Assembly>SP_CopyFromRSN.dll</Assembly>
+    <AddInId>93D5618A-D447-46B5-A159-478E3F718B90</AddInId>
+    <FullClassName>SP_CopyFromRSN.App.CopyFromRsnApp</FullClassName>
+    <VendorId>SPRO</VendorId>
+    <VendorDescription>SmartProject — копирование моделей с RSN</VendorDescription>
+  </AddIn>
+</RevitAddIns>
