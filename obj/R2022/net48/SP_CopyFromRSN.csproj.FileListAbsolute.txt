@@ -23,3 +23,4 @@ C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\obj\R2022\net48\SP_CopyFromRSN
 C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\obj\R2022\net48\SP_CopyF.91CED600.Up2Date
 C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\obj\R2022\net48\SP_CopyFromRSN.dll
 C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\obj\R2022\net48\SP_CopyFromRSN.pdb
+C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\obj\R2022\net48\SP_CopyFromRSN.sourcelink.json

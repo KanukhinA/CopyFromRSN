@@ -1,4 +1,4 @@
-# Сборка дистрибутива SP_CopyFromRSN
+﻿# Сборка дистрибутива SP_CopyFromRSN
 param(
     [switch]$SkipBuild,
     [switch]$SkipInstaller

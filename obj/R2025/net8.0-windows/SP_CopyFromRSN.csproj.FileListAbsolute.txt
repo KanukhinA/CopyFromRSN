@@ -16,3 +16,4 @@ C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\obj\R2025\net8.0-windows\SP_Co
 C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\obj\R2025\net8.0-windows\refint\SP_CopyFromRSN.dll
 C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\obj\R2025\net8.0-windows\SP_CopyFromRSN.pdb
 C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\obj\R2025\net8.0-windows\ref\SP_CopyFromRSN.dll
+C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\obj\R2025\net8.0-windows\SP_CopyFromRSN.sourcelink.json

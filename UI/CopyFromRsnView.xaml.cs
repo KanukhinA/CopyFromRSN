@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace SP_CopyFromRSN.UI
 {
@@ -81,6 +82,25 @@ namespace SP_CopyFromRSN.UI
                 return;
 
             _viewModel.LoadProfile(selectedName);
+        }
+
+        /// <summary>ПКМ выделяет строку под курсором перед открытием контекстного меню.</summary>
+        private void DataGrid_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not DataGrid grid)
+                return;
+
+            DependencyObject? current = e.OriginalSource as DependencyObject;
+            while (current != null && current is not DataGridRow && current is not DataGrid)
+                current = VisualTreeHelper.GetParent(current);
+
+            if (current is not DataGridRow row)
+                return;
+
+            row.Focus();
+            row.IsSelected = true;
+            grid.SelectedItem = row.Item;
+            grid.CurrentItem = row.Item;
         }
     }
 }

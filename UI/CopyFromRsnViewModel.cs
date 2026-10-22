@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -92,7 +93,16 @@ namespace SP_CopyFromRSN.UI
         public string LocalDownloadFolder
         {
             get => _localDownloadFolder;
-            set => SetProperty(ref _localDownloadFolder, value);
+            set
+            {
+                if (!SetProperty(ref _localDownloadFolder, value))
+                    return;
+
+                // Сразу синхронизируем runtime-профиль — иначе до Save/перезапуска
+                // копирование и логи могут идти в прежнюю папку.
+                if (CopyFromRsnRuntime.ActiveProfile != null)
+                    CopyFromRsnRuntime.ActiveProfile.LocalDownloadFolder = value ?? string.Empty;
+            }
         }
 
         public string RevitServerToolPath
@@ -157,7 +167,10 @@ namespace SP_CopyFromRSN.UI
             set
             {
                 if (SetProperty(ref _selectedModel, value))
+                {
                     RemoveModelCommand?.NotifyCanExecuteChanged();
+                    CopySelectedModelCommand?.NotifyCanExecuteChanged();
+                }
             }
         }
 
@@ -167,7 +180,10 @@ namespace SP_CopyFromRSN.UI
             set
             {
                 if (SetProperty(ref _selectedLink, value))
+                {
                     RemoveLinkCommand?.NotifyCanExecuteChanged();
+                    CopySelectedLinkCommand?.NotifyCanExecuteChanged();
+                }
             }
         }
 
@@ -204,8 +220,10 @@ namespace SP_CopyFromRSN.UI
         public RelayCommand ExportCsvCommand { get; }
         public RelayCommand AddModelCommand { get; }
         public RelayCommand RemoveModelCommand { get; }
+        public RelayCommand CopySelectedModelCommand { get; }
         public RelayCommand AddLinkCommand { get; }
         public RelayCommand RemoveLinkCommand { get; }
+        public RelayCommand CopySelectedLinkCommand { get; }
         public RelayCommand AddRunTimeCommand { get; }
         public RelayCommand RemoveRunTimeCommand { get; }
         public RelayCommand RunNowCommand { get; }
@@ -227,10 +245,12 @@ namespace SP_CopyFromRSN.UI
             RemoveModelCommand = new RelayCommand(
                 () => { if (SelectedModel != null) Models.Remove(SelectedModel); },
                 () => !IsBusy && SelectedModel != null);
+            CopySelectedModelCommand = new RelayCommand(CopySelectedModel, () => SelectedModel != null);
             AddLinkCommand = new RelayCommand(() => Links.Add(new LinkCopyEntry()), () => !IsBusy);
             RemoveLinkCommand = new RelayCommand(
                 () => { if (SelectedLink != null) Links.Remove(SelectedLink); },
                 () => !IsBusy && SelectedLink != null);
+            CopySelectedLinkCommand = new RelayCommand(CopySelectedLink, () => SelectedLink != null);
             AddRunTimeCommand = new RelayCommand(AddRunTime, () => !IsBusy);
             RemoveRunTimeCommand = new RelayCommand(RemoveRunTime, () => !IsBusy && SelectedRunTime != null);
             RunNowCommand = new RelayCommand(RunNow, () => !IsBusy);
@@ -398,6 +418,10 @@ namespace SP_CopyFromRSN.UI
 
         private CopyFromRsnProfile BuildProfileFromUi()
         {
+            // TextBox по умолчанию пишет в source только на LostFocus —
+            // при «Сохранить»/«Запустить» без ухода с поля уходил старый путь.
+            CommitPendingTextEdits();
+
             var profile = new CopyFromRsnProfile
             {
                 Name = ProfileName,
@@ -417,6 +441,15 @@ namespace SP_CopyFromRSN.UI
             };
 
             return CopyFromRsnProfileStorage.Normalize(profile);
+        }
+
+        /// <summary>Сбрасывает несохранённый ввод из сфокусированного TextBox в свойства ViewModel.</summary>
+        private static void CommitPendingTextEdits()
+        {
+            if (Keyboard.FocusedElement is not System.Windows.Controls.TextBox textBox)
+                return;
+
+            textBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateSource();
         }
 
         private void SaveProfile()
@@ -588,18 +621,38 @@ namespace SP_CopyFromRSN.UI
             }
         }
 
+        private void CopySelectedModel()
+        {
+            if (SelectedModel == null)
+                return;
+
+            CopyTextToClipboard($"{SelectedModel.SourcePath}\t{SelectedModel.TargetPath}");
+        }
+
+        private void CopySelectedLink()
+        {
+            if (SelectedLink == null)
+                return;
+
+            CopyTextToClipboard($"{SelectedLink.ModelName}\t{SelectedLink.OldPath}\t{SelectedLink.NewPath}");
+        }
+
         private void CopyStatus()
         {
             if (string.IsNullOrWhiteSpace(StatusText))
                 return;
 
+            CopyTextToClipboard(StatusText);
+        }
+
+        private void CopyTextToClipboard(string text)
+        {
             try
             {
-                Clipboard.SetText(StatusText);
-                // Кратко подтверждаем без диалога
+                Clipboard.SetText(text);
                 string previous = StatusText;
                 StatusText = "Скопировано в буфер обмена.";
-                var timer = new System.Windows.Threading.DispatcherTimer
+                var timer = new DispatcherTimer
                 {
                     Interval = TimeSpan.FromSeconds(1.5)
                 };
@@ -671,8 +724,10 @@ namespace SP_CopyFromRSN.UI
             ExportCsvCommand.NotifyCanExecuteChanged();
             AddModelCommand.NotifyCanExecuteChanged();
             RemoveModelCommand.NotifyCanExecuteChanged();
+            CopySelectedModelCommand.NotifyCanExecuteChanged();
             AddLinkCommand.NotifyCanExecuteChanged();
             RemoveLinkCommand.NotifyCanExecuteChanged();
+            CopySelectedLinkCommand.NotifyCanExecuteChanged();
             AddRunTimeCommand.NotifyCanExecuteChanged();
             RemoveRunTimeCommand.NotifyCanExecuteChanged();
             RunNowCommand.NotifyCanExecuteChanged();

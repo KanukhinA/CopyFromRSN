@@ -167,7 +167,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBox Text="{Binding LocalDownloadFolder, Mode=TwoWay}"/>
+                                    <TextBox Text="{Binding LocalDownloadFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                     <Button Grid.Column="1" Style="{StaticResource RoundedButtonStyle}"
                                             Content="…" Width="32" Height="24" Margin="6,0,0,0"
                                             Command="{Binding BrowseFolderCommand}"/>
@@ -178,7 +178,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBox Text="{Binding RevitServerToolPath, Mode=TwoWay}"
+                                    <TextBox Text="{Binding RevitServerToolPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              ToolTip="Нужен только для исходных путей из RSN"/>
                                     <Button Grid.Column="1" Style="{StaticResource RoundedButtonStyle}"
                                             Content="…" Width="32" Height="24" Margin="6,0,0,0"
@@ -214,7 +214,7 @@
                                           Margin="0,0,0,2"
                                           ToolTip="Включите, если для исходного пути нужно использовать сервер RSN из поля ниже"/>
                                 <Label Content="Исходный сервер RSN" Padding="0,0,0,2"/>
-                                <TextBox Text="{Binding SourceServer, Mode=TwoWay}"
+                                <TextBox Text="{Binding SourceServer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                          IsEnabled="{Binding UseSourceRevitServer}"
                                          ToolTip="Используется только если в таблице указан относительный путь на RSN"/>
                             </StackPanel>
@@ -224,7 +224,7 @@
                                           Margin="0,0,0,2"
                                           ToolTip="Включите, если для целевого пути нужно использовать сервер RSN из поля ниже"/>
                                 <Label Content="Целевой сервер RSN" Padding="0,0,0,2"/>
-                                <TextBox Text="{Binding TargetServer, Mode=TwoWay}"
+                                <TextBox Text="{Binding TargetServer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                          IsEnabled="{Binding UseTargetRevitServer}"
                                          ToolTip="Используется только если в таблице указан относительный путь на RSN"/>
                             </StackPanel>
@@ -241,7 +241,19 @@
                                   SelectionUnit="FullRow"
                                   AutoGenerateColumns="False" CanUserAddRows="False"
                                   HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                                  BorderBrush="#FF005E96">
+                                  BorderBrush="#FF005E96"
+                                  PreviewMouseRightButtonDown="DataGrid_PreviewMouseRightButtonDown">
+                            <DataGrid.InputBindings>
+                                <KeyBinding Key="C" Modifiers="Control"
+                                            Command="{Binding CopySelectedModelCommand}"/>
+                            </DataGrid.InputBindings>
+                            <DataGrid.ContextMenu>
+                                <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                    <MenuItem Header="Копировать"
+                                              InputGestureText="Ctrl+C"
+                                              Command="{Binding CopySelectedModelCommand}"/>
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Исходный путь к модели"
                                                     Binding="{Binding SourcePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -274,7 +286,19 @@
                                   AutoGenerateColumns="False" CanUserAddRows="False"
                                   HeadersVisibility="Column" GridLinesVisibility="Horizontal"
                                   BorderBrush="#FF005E96"
-                                  IsEnabled="{Binding RepathLinks}">
+                                  IsEnabled="{Binding RepathLinks}"
+                                  PreviewMouseRightButtonDown="DataGrid_PreviewMouseRightButtonDown">
+                            <DataGrid.InputBindings>
+                                <KeyBinding Key="C" Modifiers="Control"
+                                            Command="{Binding CopySelectedLinkCommand}"/>
+                            </DataGrid.InputBindings>
+                            <DataGrid.ContextMenu>
+                                <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                    <MenuItem Header="Копировать"
+                                              InputGestureText="Ctrl+C"
+                                              Command="{Binding CopySelectedLinkCommand}"/>
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Модель" Binding="{Binding ModelName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="160"/>
                                 <DataGridTextColumn Header="Старый путь" Binding="{Binding OldPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
