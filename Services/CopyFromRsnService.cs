@@ -31,7 +31,8 @@ namespace SP_CopyFromRSN.Services
             ValidateSettings();
 
             List<ModelCopyRow> models = BuildModelRows();
-            Dictionary<string, string> localPaths = PrepareLocalModelCopies(models);
+            List<string> skippedModels;
+            Dictionary<string, string> localPaths = PrepareLocalModelCopies(models, out skippedModels);
 
             if (_profile.RepathLinks)
                 RepathExternalLinks(localPaths, BuildLinkRows());
@@ -39,11 +40,15 @@ namespace SP_CopyFromRSN.Services
                 Log("Замена путей связанных файлов отключена.");
 
             int savedCount = 0;
-            int failedCount = 0;
+            int failedCount = skippedModels.Count;
 
             foreach (ModelCopyRow model in models)
             {
-                string localPath = localPaths[model.ModelName];
+                // Модели, которые не удалось подготовить (например, нет файла на RSN),
+                // пропускаем: ошибка уже записана в журнал, процесс не останавливаем.
+                if (!localPaths.TryGetValue(model.ModelName, out string? localPath))
+                    continue;
+
                 try
                 {
                     OpenDetachAndSave(localPath, ResolveTargetPath(model.TargetPath), true);
@@ -74,6 +79,16 @@ namespace SP_CopyFromRSN.Services
                 "Обработка завершена. Сохранено: " + savedCount +
                 ", ошибок: " + failedCount + ".";
             Log(result);
+
+            // О пропущенных моделях сообщаем отдельным диалогом, не прерывая процесс.
+            if (skippedModels.Count > 0)
+            {
+                Autodesk.Revit.UI.TaskDialog.Show(
+                    "SP CopyFromRSN",
+                    "Эти модели не найдены по указанным путям и пропущены " +
+                    "(подробности в журнале):\n\n" + string.Join("\n", skippedModels));
+            }
+
             return result;
         }
 
@@ -172,10 +187,15 @@ namespace SP_CopyFromRSN.Services
         /// <summary>
         /// Подготавливает локальные копии моделей для дальнейшей обработки:
         /// из RSN через RevitServerTool или прямым копированием из файловой системы.
+        /// Модель, которую не удалось подготовить, пропускается с записью в журнал
+        /// и добавлением в <paramref name="skippedModels"/> — процесс не останавливается.
         /// </summary>
-        private Dictionary<string, string> PrepareLocalModelCopies(List<ModelCopyRow> models)
+        private Dictionary<string, string> PrepareLocalModelCopies(
+            List<ModelCopyRow> models,
+            out List<string> skippedModels)
         {
             var localPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            skippedModels = new List<string>();
             Directory.CreateDirectory(_profile.LocalDownloadFolder);
 
             // Как в Dynamo: -d — папка со слэшем «/» (не полный путь к .rvt)
@@ -188,27 +208,48 @@ namespace SP_CopyFromRSN.Services
                     throw new InvalidDataException(
                         "Обнаружены модели с одинаковым именем: " + model.ModelName);
 
-                if (File.Exists(localPath))
-                    File.Delete(localPath);
-
-                if (model.IsFileSystemSource)
+                try
                 {
-                    Log("Копирование локальной копии " + model.ModelName + " из файловой структуры.");
-                    CopyModelFromFileSystem(model.ResolvedSourcePath, localPath);
+                    if (File.Exists(localPath))
+                        File.Delete(localPath);
+
+                    if (model.IsFileSystemSource)
+                    {
+                        Log("Копирование локальной копии " + model.ModelName + " из файловой структуры.");
+                        CopyModelFromFileSystem(model.ResolvedSourcePath, localPath);
+                    }
+                    else
+                    {
+                        Log("Загрузка локальной копии " + model.ModelName + " из RSN.");
+                        RunRevitServerTool(model.ResolvedSourcePath, model.SourceServer, destinationFolder);
+                    }
+
+                    if (!File.Exists(localPath))
+                        throw new FileNotFoundException(
+                            "Не удалось подготовить локальную модель:\n" + localPath +
+                            "\nПроверьте исходный путь, доступ к нему и папку загрузки.",
+                            localPath);
+
+                    localPaths.Add(model.ModelName, localPath);
                 }
-                else
+                catch (Exception exception)
                 {
-                    Log("Загрузка локальной копии " + model.ModelName + " из RSN.");
-                    RunRevitServerTool(model.ResolvedSourcePath, model.SourceServer, destinationFolder);
+                    // Удаляем возможный недокачанный файл, чтобы не открыть его как модель.
+                    try
+                    {
+                        if (File.Exists(localPath))
+                            File.Delete(localPath);
+                    }
+                    catch
+                    {
+                        // Ошибка удаления временного файла не критична
+                    }
+
+                    Log(
+                        "Модель " + model.ModelName + " пропущена: " + exception.Message,
+                        true);
+                    skippedModels.Add(model.ModelName + " (" + model.SourcePath + ")");
                 }
-
-                if (!File.Exists(localPath))
-                    throw new FileNotFoundException(
-                        "Не удалось подготовить локальную модель:\n" + localPath +
-                        "\nПроверьте исходный путь, доступ к нему и папку загрузки.",
-                        localPath);
-
-                localPaths.Add(model.ModelName, localPath);
             }
 
             Log("Локальные копии моделей подготовлены в " + _profile.LocalDownloadFolder + ".");

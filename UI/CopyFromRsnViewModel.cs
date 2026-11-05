@@ -45,12 +45,24 @@ namespace SP_CopyFromRSN.UI
         private string? _selectedRunTime;
         private string _loadedProfileName = string.Empty;
         private bool _suppressProfileSelectionLoad;
+        private bool _isProfileRenameMode;
 
         /// <summary>Имя профиля, загруженного с диска (для переименования и выбора из списка).</summary>
         public string LoadedProfileName => _loadedProfileName;
 
         /// <summary>Пока обновляется список профилей — не реагировать на SelectionChanged ComboBox.</summary>
         public bool SuppressProfileSelectionLoad => _suppressProfileSelectionLoad;
+
+        /// <summary>
+        /// Режим переименования профиля (кнопка «карандаш»): поле имени становится
+        /// редактируемым. В обычном режиме ввод имени запрещён, поэтому случайный
+        /// ввод не может автоматически выбрать другой профиль из списка.
+        /// </summary>
+        public bool IsProfileRenameMode
+        {
+            get => _isProfileRenameMode;
+            set => SetProperty(ref _isProfileRenameMode, value);
+        }
 
         public ObservableCollection<string> ProfileNames { get; } = new ObservableCollection<string>();
         public ObservableCollection<ModelCopyEntry> Models { get; } = new ObservableCollection<ModelCopyEntry>();
@@ -216,6 +228,7 @@ namespace SP_CopyFromRSN.UI
         public RelayCommand SaveProfileCommand { get; }
         public RelayCommand NewProfileCommand { get; }
         public RelayCommand DeleteProfileCommand { get; }
+        public RelayCommand RenameProfileCommand { get; }
         public RelayCommand ImportCsvCommand { get; }
         public RelayCommand ExportCsvCommand { get; }
         public RelayCommand AddModelCommand { get; }
@@ -239,6 +252,7 @@ namespace SP_CopyFromRSN.UI
             SaveProfileCommand = new RelayCommand(SaveProfile, () => !IsBusy);
             NewProfileCommand = new RelayCommand(CreateNewProfile, () => !IsBusy);
             DeleteProfileCommand = new RelayCommand(DeleteProfile, () => !IsBusy);
+            RenameProfileCommand = new RelayCommand(ToggleProfileRenameMode, () => !IsBusy);
             ImportCsvCommand = new RelayCommand(ImportCsv, () => !IsBusy);
             ExportCsvCommand = new RelayCommand(ExportCsv, () => !IsBusy);
             AddModelCommand = new RelayCommand(() => Models.Add(new ModelCopyEntry()), () => !IsBusy);
@@ -381,8 +395,26 @@ namespace SP_CopyFromRSN.UI
         {
             var profile = CopyFromRsnProfileStorage.LoadProfile(_revitVersion, profileName);
             _loadedProfileName = profileName;
+            IsProfileRenameMode = false;
             ApplyProfileToUi(profile);
             OnPropertyChanged(nameof(CalendarHint));
+        }
+
+        /// <summary>
+        /// Кнопка «карандаш»: включает/выключает режим переименования профиля.
+        /// При выходе из режима без сохранения имя возвращается к загруженному.
+        /// </summary>
+        private void ToggleProfileRenameMode()
+        {
+            IsProfileRenameMode = !IsProfileRenameMode;
+            if (IsProfileRenameMode)
+            {
+                StatusText = "Режим переименования: измените имя и нажмите «Сохранить».";
+            }
+            else if (!string.IsNullOrWhiteSpace(_loadedProfileName))
+            {
+                ProfileName = _loadedProfileName;
+            }
         }
 
         private void ApplyProfileToUi(CopyFromRsnProfile profile)
@@ -476,6 +508,7 @@ namespace SP_CopyFromRSN.UI
 
             _loadedProfileName = newName;
             ProfileName = newName;
+            IsProfileRenameMode = false;
             CopyFromRsnProfileStorage.SetActiveProfile(_revitVersion, profile.Name);
             CopyFromRsnRuntime.ActiveProfile = profile;
             RefreshProfileList();
@@ -497,6 +530,8 @@ namespace SP_CopyFromRSN.UI
             profile.Name = name;
             _loadedProfileName = string.Empty;
             ApplyProfileToUi(profile);
+            // Новому профилю сразу даём режим переименования, чтобы задать имя
+            IsProfileRenameMode = true;
             StatusText = "Создан новый профиль. Укажите имя и сохраните.";
         }
 
@@ -517,7 +552,10 @@ namespace SP_CopyFromRSN.UI
             if (ProfileNames.Count > 0)
                 LoadProfile(ProfileNames[0]);
             else
+            {
+                IsProfileRenameMode = false;
                 ApplyProfileToUi(CopyFromRsnProfileStorage.CreateDefaultProfile(_revitVersion));
+            }
         }
 
         private void ImportCsv()
@@ -720,6 +758,7 @@ namespace SP_CopyFromRSN.UI
             SaveProfileCommand.NotifyCanExecuteChanged();
             NewProfileCommand.NotifyCanExecuteChanged();
             DeleteProfileCommand.NotifyCanExecuteChanged();
+            RenameProfileCommand.NotifyCanExecuteChanged();
             ImportCsvCommand.NotifyCanExecuteChanged();
             ExportCsvCommand.NotifyCanExecuteChanged();
             AddModelCommand.NotifyCanExecuteChanged();

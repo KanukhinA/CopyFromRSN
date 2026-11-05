@@ -32,25 +32,11 @@ foreach ($cfg in $configs) {
     New-Item -ItemType Directory -Force -Path $dest | Out-Null
     Copy-Item (Join-Path $src '*') $dest -Recurse -Force
 
-    $ps1 = @"
-`$ErrorActionPreference = 'Stop'
-`$src = `$PSScriptRoot
-`$dest = Join-Path `$env:APPDATA "Autodesk\Revit\Addins\$year"
-# Переустановка: сначала убираем старые файлы плагина в этой версии Revit
-`$names = @('SP_CopyFromRSN.dll', 'SP_CopyFromRSN.addin', 'SP_CopyFromRSN.deps.json', 'SP_CopyFromRSN.pdb', 'CommunityToolkit.Mvvm.dll', 'System.Text.Json.dll')
-if (Test-Path `$dest) {
-    foreach (`$n in `$names) {
-        `$p = Join-Path `$dest `$n
-        if (Test-Path `$p) { Remove-Item `$p -Force -ErrorAction SilentlyContinue }
-    }
-    Get-ChildItem `$dest -Filter 'SP_CopyFromRSN*' -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-}
-New-Item -ItemType Directory -Force -Path `$dest | Out-Null
-Copy-Item (Join-Path `$src '*') `$dest -Recurse -Force -Exclude 'Install-Standalone.ps1'
-Write-Host "Установлено в `$dest"
-Write-Host "Перезапустите Revit для загрузки плагина."
-"@
+    # Текст скрипта берём из UTF-8 шаблона (не из here-string),
+    # иначе PowerShell 5.1 без BOM читает кириллицу как CP1251.
+    $installTemplatePath = Join-Path $PSScriptRoot 'Install-Standalone.template.ps1'
     $utf8Bom = New-Object System.Text.UTF8Encoding $true
+    $ps1 = [System.IO.File]::ReadAllText($installTemplatePath, $utf8Bom).Replace('{{YEAR}}', $year)
     [System.IO.File]::WriteAllText((Join-Path $dest 'Install-Standalone.ps1'), $ps1, $utf8Bom)
 }
 

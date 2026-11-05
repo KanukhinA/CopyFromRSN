@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+\xef\xbb\xbf\xef\xbb\xbf$ErrorActionPreference = 'Stop'
 $src = $PSScriptRoot
 $dest = Join-Path $env:APPDATA "Autodesk\Revit\Addins\2022"
 # Переустановка: сначала убираем старые файлы плагина в этой версии Revit
@@ -8,7 +8,8 @@ if (Test-Path $dest) {
         $p = Join-Path $dest $n
         if (Test-Path $p) { Remove-Item $p -Force -ErrorAction SilentlyContinue }
     }
-    Get-ChildItem $dest -Filter 'SP_CopyFromRSN*' -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    # Папку SP_CopyFromRSN с конфигами профилей (Configs, active-profile.txt) не трогаем —
+    # при обновлении версии настройки пользователя должны сохраняться.
 }
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item (Join-Path $src '*') $dest -Recurse -Force -Exclude 'Install-Standalone.ps1'
