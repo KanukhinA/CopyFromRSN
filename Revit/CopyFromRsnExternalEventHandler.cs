@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Autodesk.Revit.UI;
 using SP_CopyFromRSN.Models;
 
@@ -8,32 +10,38 @@ namespace SP_CopyFromRSN.Revit
     public sealed class CopyFromRsnExternalEventHandler : IExternalEventHandler
     {
         private readonly object _sync = new object();
-        private CopyFromRsnProfile? _pendingProfile;
+        private List<CopyFromRsnProfile> _pendingProfiles = new List<CopyFromRsnProfile>();
 
-        public void RequestRun(CopyFromRsnProfile profile)
+        public void RequestRun(CopyFromRsnProfile profile) =>
+            RequestRun(new[] { profile });
+
+        public void RequestRun(IEnumerable<CopyFromRsnProfile> profiles)
         {
             lock (_sync)
             {
-                _pendingProfile = profile.Clone();
+                _pendingProfiles = profiles
+                    .Where(p => p != null)
+                    .Select(p => p.Clone())
+                    .ToList();
             }
         }
 
         public void Execute(UIApplication app)
         {
-            CopyFromRsnProfile? profile;
+            List<CopyFromRsnProfile> profiles;
             lock (_sync)
             {
-                profile = _pendingProfile;
-                _pendingProfile = null;
+                profiles = _pendingProfiles;
+                _pendingProfiles = new List<CopyFromRsnProfile>();
             }
 
-            if (profile == null)
+            if (profiles.Count == 0)
                 return;
 
             try
             {
-                // Результат/ошибка уходят в StatusChanged / RunCompleted — без TaskDialog
-                CopyFromRsnRuntime.ExecuteCopy(app, profile);
+                // Пакет из одного или нескольких профилей — в одном вызове ExternalEvent
+                CopyFromRsnRuntime.ExecuteCopyBatch(app, profiles);
             }
             catch
             {

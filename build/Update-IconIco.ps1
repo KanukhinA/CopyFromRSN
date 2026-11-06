@@ -1,4 +1,4 @@
-﻿# Сборка icon.ico из PNG (16/32) для Inno Setup
+\xef\xbb\xbf﻿# Сборка icon.ico из PNG (16/32) для Inno Setup
 param(
     [string]$AssetsDir = (Join-Path (Split-Path -Parent $PSScriptRoot) 'Assets')
 )

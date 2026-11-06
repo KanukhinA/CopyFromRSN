@@ -24,3 +24,4 @@ C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\obj\R2023\net48\SP_CopyF.91CED
 C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\obj\R2023\net48\SP_CopyFromRSN.dll
 C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\obj\R2023\net48\SP_CopyFromRSN.pdb
 C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\obj\R2023\net48\SP_CopyFromRSN.sourcelink.json
+C:\Users\Kanuhin_A\source\repos\SP\SP_CopyFromRSN\bin\R2023\net48\System.Text.Encoding.CodePages.dll

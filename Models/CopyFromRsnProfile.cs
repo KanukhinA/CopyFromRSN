@@ -7,6 +7,12 @@ namespace SP_CopyFromRSN.Models
     {
         public string Name { get; set; } = "По умолчанию";
 
+        /// <summary>
+        /// Участвует в пакетном запуске «Запуск активных конфигураций».
+        /// Не путать с active-profile.txt (последний выбранный профиль в UI).
+        /// </summary>
+        public bool IsActiveConfiguration { get; set; }
+
         public string SourceServer { get; set; } = string.Empty;
 
         /// <summary>Использовать поле исходного сервера для относительных путей на RSN.</summary>
@@ -42,6 +48,7 @@ namespace SP_CopyFromRSN.Models
             return new CopyFromRsnProfile
             {
                 Name = Name,
+                IsActiveConfiguration = IsActiveConfiguration,
                 SourceServer = SourceServer,
                 UseSourceRevitServer = UseSourceRevitServer,
                 TargetServer = TargetServer,

@@ -168,6 +168,10 @@
                         <Button Style="{StaticResource RoundedButtonStyle}" Content="Экспорт CSV"
                                 MinWidth="100" Height="26" Margin="0,0,4,4" Padding="8,0"
                                 Command="{Binding ExportCsvCommand}"/>
+                        <CheckBox Content="Активная конфигурация"
+                                  IsChecked="{Binding IsActiveConfiguration, Mode=TwoWay}"
+                                  VerticalAlignment="Center" Margin="8,0,4,4"
+                                  ToolTip="Участвует в «Запуск активных конфигураций»"/>
                     </WrapPanel>
                 </Grid>
             </Border>
@@ -444,9 +448,14 @@
                         Command="{Binding SaveProfileCommand}"
                         ToolTip="Сохранить профиль без закрытия окна"/>
                 <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
-                    <Button Style="{StaticResource RoundedButtonStyle}" Content="Запустить сейчас"
-                            MinWidth="150" Height="28" Margin="0,0,8,4" Padding="8,0"
-                            Command="{Binding RunNowCommand}"/>
+                    <Button Style="{StaticResource RoundedButtonStyle}" Content="Запуск текущей конфигурации"
+                            MinWidth="200" Height="28" Margin="0,0,8,4" Padding="8,0"
+                            Command="{Binding RunCurrentConfigCommand}"
+                            ToolTip="Сохранить и запустить только открытый профиль"/>
+                    <Button Style="{StaticResource RoundedButtonStyle}" Content="Запуск активных конфигураций"
+                            MinWidth="220" Height="28" Margin="0,0,8,4" Padding="8,0"
+                            Command="{Binding RunActiveConfigsCommand}"
+                            ToolTip="По очереди запустить все профили с галочкой «Активная конфигурация»"/>
                     <Button Style="{StaticResource RoundedButtonStyle}" Content="Отмена"
                             MinWidth="100" Height="28" Margin="0,0,0,4" Click="CloseButton_Click"/>
                 </WrapPanel>

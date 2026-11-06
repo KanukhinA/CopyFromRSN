@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Autodesk.Revit.UI;
 using SP_CopyFromRSN.Models;
 using SP_CopyFromRSN.Services;
@@ -52,8 +53,14 @@ namespace SP_CopyFromRSN.Revit
             }
         }
 
-        public static void RaiseCopy(CopyFromRsnProfile profile)
+        public static void RaiseCopy(CopyFromRsnProfile profile) =>
+            RaiseCopy(new[] { profile });
+
+        public static void RaiseCopy(IReadOnlyList<CopyFromRsnProfile> profiles)
         {
+            if (profiles == null || profiles.Count == 0)
+                throw new InvalidOperationException("Нет конфигураций для запуска.");
+
             lock (ExternalEventSync)
             {
                 if (_handler == null || _externalEvent == null)
@@ -63,7 +70,7 @@ namespace SP_CopyFromRSN.Revit
                 if (IsRunning)
                     throw new InvalidOperationException("Копирование уже выполняется.");
 
-                _handler.RequestRun(profile);
+                _handler.RequestRun(profiles);
                 _externalEvent.Raise();
             }
         }
@@ -72,59 +79,105 @@ namespace SP_CopyFromRSN.Revit
         /// Выполняет копирование на текущем потоке Revit.
         /// Нужно для запуска из модального окна (ExternalEvent там не срабатывает).
         /// </summary>
-        public static string ExecuteCopy(UIApplication app, CopyFromRsnProfile profile)
+        public static string ExecuteCopy(UIApplication app, CopyFromRsnProfile profile) =>
+            ExecuteCopyBatch(app, new[] { profile });
+
+        /// <summary>
+        /// Последовательно выполняет несколько профилей в одном контексте API.
+        /// Промежуточные статусы идут в StatusChanged; итог — один RunCompleted.
+        /// </summary>
+        public static string ExecuteCopyBatch(UIApplication app, IReadOnlyList<CopyFromRsnProfile> profiles)
         {
+            if (profiles == null || profiles.Count == 0)
+                throw new InvalidOperationException("Нет конфигураций для запуска.");
+
             if (IsRunning)
                 throw new InvalidOperationException("Копирование уже выполняется.");
 
             IsRunning = true;
+            var summaries = new List<string>();
+            bool anyError = false;
+
             try
             {
-                RaiseStatus("Выполняется копирование моделей...");
+                for (int i = 0; i < profiles.Count; i++)
+                {
+                    CopyFromRsnProfile profile = profiles[i];
+                    string label = string.IsNullOrWhiteSpace(profile.Name)
+                        ? ("#" + (i + 1))
+                        : profile.Name;
 
-                var service = new CopyFromRsnService(
-                    app.Application,
-                    profile,
-                    (message, isError) =>
+                    RaiseStatus(
+                        "Конфигурация «" + label + "» (" + (i + 1) + "/" + profiles.Count + ")...");
+
+                    try
                     {
-                        CopyFromRsnService.LogStatic(profile.LocalDownloadFolder, message, isError);
-                        RaiseStatus(message);
-                    });
+                        string result = ExecuteCopyCore(app, profile);
+                        summaries.Add("«" + label + "»: " + result);
+                    }
+                    catch (Exception exception)
+                    {
+                        anyError = true;
+                        string error = exception.Message;
+                        if (error.StartsWith("Ошибка: ", StringComparison.Ordinal))
+                            error = error.Substring("Ошибка: ".Length);
 
-                string result;
-                if (profile.SuppressOpenWarnings)
-                {
-                    using (CopyFromRsnOpenWarningSuppression.Begin())
-                        result = service.Execute();
-                }
-                else
-                {
-                    result = service.Execute();
-                }
-
-                RaiseRunCompleted(result, false);
-                return result;
-            }
-            catch (Exception exception)
-            {
-                string error = "Ошибка: " + exception.Message;
-                try
-                {
-                    CopyFromRsnService.LogStatic(
-                        profile.LocalDownloadFolder, exception.ToString(), true);
-                }
-                catch
-                {
-                    // Журнал не должен скрывать исходную ошибку
+                        summaries.Add("«" + label + "»: ошибка — " + error);
+                        try
+                        {
+                            CopyFromRsnService.LogStatic(
+                                profile.LocalDownloadFolder, exception.ToString(), true);
+                        }
+                        catch
+                        {
+                            // Журнал не должен скрывать исходную ошибку
+                        }
+                    }
                 }
 
-                RaiseRunCompleted(error, true);
-                throw new InvalidOperationException(error, exception);
+                string combined = profiles.Count == 1
+                    ? summaries[0]
+                    : "Пакетный запуск завершён (" + profiles.Count + "):\n" +
+                      string.Join("\n", summaries);
+
+                if (anyError && profiles.Count == 1)
+                    combined = "Ошибка: " + summaries[0];
+                else if (anyError)
+                    combined = "Пакетный запуск с ошибками (" + profiles.Count + "):\n" +
+                               string.Join("\n", summaries);
+
+                RaiseRunCompleted(combined, anyError);
+                if (anyError && profiles.Count == 1)
+                    throw new InvalidOperationException(combined);
+
+                return combined;
             }
             finally
             {
                 IsRunning = false;
             }
+        }
+
+        private static string ExecuteCopyCore(UIApplication app, CopyFromRsnProfile profile)
+        {
+            RaiseStatus("Выполняется копирование моделей («" + profile.Name + "»)...");
+
+            var service = new CopyFromRsnService(
+                app.Application,
+                profile,
+                (message, isError) =>
+                {
+                    CopyFromRsnService.LogStatic(profile.LocalDownloadFolder, message, isError);
+                    RaiseStatus("[" + profile.Name + "] " + message);
+                });
+
+            if (profile.SuppressOpenWarnings)
+            {
+                using (CopyFromRsnOpenWarningSuppression.Begin())
+                    return service.Execute();
+            }
+
+            return service.Execute();
         }
     }
 }

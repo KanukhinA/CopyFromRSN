@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -301,6 +302,9 @@ namespace SP_CopyFromRSN.Services
                 "-o"
             };
 
+            // RevitServerTool пишет пути с кириллицей в OEM-кодовой странице консоли.
+            // Без явной кодировки .NET читает stdout/stderr как ANSI → кракозябры в логе.
+            Encoding toolEncoding = GetConsoleOemEncoding();
             var startInfo = new ProcessStartInfo
             {
                 FileName = toolPath,
@@ -309,7 +313,9 @@ namespace SP_CopyFromRSN.Services
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
-                RedirectStandardError = true
+                RedirectStandardError = true,
+                StandardOutputEncoding = toolEncoding,
+                StandardErrorEncoding = toolEncoding
             };
 
             var output = new StringBuilder();
@@ -360,6 +366,33 @@ namespace SP_CopyFromRSN.Services
                         "\nСервер: " + sourceServer +
                         "\nПуть на RSN: " + sourceModelPath +
                         "\nПапка: " + destinationFolder);
+                }
+            }
+        }
+
+        /// <summary>
+        /// OEM code page текущего языка Windows (обычно CP866 для ru-RU).
+        /// Нужна для корректного чтения stdout/stderr консольных утилит Autodesk.
+        /// </summary>
+        private static Encoding GetConsoleOemEncoding()
+        {
+#if !NETFRAMEWORK
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
+            try
+            {
+                int oemCodePage = CultureInfo.CurrentCulture.TextInfo.OEMCodePage;
+                return Encoding.GetEncoding(oemCodePage);
+            }
+            catch (ArgumentException)
+            {
+                try
+                {
+                    return Encoding.GetEncoding(866);
+                }
+                catch (ArgumentException)
+                {
+                    return Encoding.Default;
                 }
             }
         }

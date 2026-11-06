@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 
@@ -34,6 +35,7 @@
       <_DistFiles Include="$(TargetDir)SP_CopyFromRSN.dll" />
       <_DistFiles Include="$(TargetDir)SP_CopyFromRSN.addin" />
       <_DistFiles Include="$(TargetDir)CommunityToolkit.Mvvm.dll" Condition="Exists('$(TargetDir)CommunityToolkit.Mvvm.dll')" />
+      <_DistFiles Include="$(TargetDir)System.Text.Encoding.CodePages.dll" Condition="Exists('$(TargetDir)System.Text.Encoding.CodePages.dll')" />
       <_DistFiles Include="$(TargetDir)System.Text.Json.dll" Condition="Exists('$(TargetDir)System.Text.Json.dll')" />
     </ItemGroup>
     <Copy SourceFiles="@(_DistFiles)" DestinationFolder="$(DistDir)" SkipUnchangedFiles="true" ContinueOnError="true" />
@@ -48,6 +50,7 @@
       <_DeployFiles Include="$(TargetDir)SP_CopyFromRSN.dll" />
       <_DeployFiles Include="$(TargetDir)SP_CopyFromRSN.addin" />
       <_DeployFiles Include="$(TargetDir)CommunityToolkit.Mvvm.dll" Condition="Exists('$(TargetDir)CommunityToolkit.Mvvm.dll')" />
+      <_DeployFiles Include="$(TargetDir)System.Text.Encoding.CodePages.dll" Condition="Exists('$(TargetDir)System.Text.Encoding.CodePages.dll')" />
       <_DeployFiles Include="$(TargetDir)System.Text.Json.dll" Condition="Exists('$(TargetDir)System.Text.Json.dll')" />
     </ItemGroup>
     <MakeDir Directories="$(RevitAddinsDir)" />

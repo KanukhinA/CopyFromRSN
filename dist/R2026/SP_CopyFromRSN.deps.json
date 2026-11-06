@@ -9,6 +9,7 @@
       "SP_CopyFromRSN/1.0.0": {
         "dependencies": {
           "CommunityToolkit.Mvvm": "8.4.0",
+          "System.Text.Encoding.CodePages": "8.0.0",
           "System.Text.Json": "8.0.5"
         },
         "runtime": {
@@ -23,6 +24,7 @@
           }
         }
       },
+      "System.Text.Encoding.CodePages/8.0.0": {},
       "System.Text.Json/8.0.5": {}
     }
   },
@@ -38,6 +40,13 @@
       "sha512": "sha512-tqVU8yc/ADO9oiTRyTnwhFN68hCwvkliMierptWOudIAvWY1mWCh5VFh+guwHJmpMwfg0J0rY+yyd5Oy7ty9Uw==",
       "path": "communitytoolkit.mvvm/8.4.0",
       "hashPath": "communitytoolkit.mvvm.8.4.0.nupkg.sha512"
+    },
+    "System.Text.Encoding.CodePages/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg==",
+      "path": "system.text.encoding.codepages/8.0.0",
+      "hashPath": "system.text.encoding.codepages.8.0.0.nupkg.sha512"
     },
     "System.Text.Json/8.0.5": {
       "type": "package",

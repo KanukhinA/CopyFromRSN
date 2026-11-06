@@ -2,7 +2,7 @@
 $src = $PSScriptRoot
 $dest = Join-Path $env:APPDATA "Autodesk\Revit\Addins\{{YEAR}}"
 # Переустановка: сначала убираем старые файлы плагина в этой версии Revit
-$names = @('SP_CopyFromRSN.dll', 'SP_CopyFromRSN.addin', 'SP_CopyFromRSN.deps.json', 'SP_CopyFromRSN.pdb', 'CommunityToolkit.Mvvm.dll', 'System.Text.Json.dll')
+$names = @('SP_CopyFromRSN.dll', 'SP_CopyFromRSN.addin', 'SP_CopyFromRSN.deps.json', 'SP_CopyFromRSN.pdb', 'CommunityToolkit.Mvvm.dll', 'System.Text.Encoding.CodePages.dll', 'System.Text.Json.dll')
 if (Test-Path $dest) {
     foreach ($n in $names) {
         $p = Join-Path $dest $n

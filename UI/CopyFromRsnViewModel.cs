@@ -46,6 +46,7 @@ namespace SP_CopyFromRSN.UI
         private string _loadedProfileName = string.Empty;
         private bool _suppressProfileSelectionLoad;
         private bool _isProfileRenameMode;
+        private bool _isActiveConfiguration;
 
         /// <summary>Имя профиля, загруженного с диска (для переименования и выбора из списка).</summary>
         public string LoadedProfileName => _loadedProfileName;
@@ -62,6 +63,13 @@ namespace SP_CopyFromRSN.UI
         {
             get => _isProfileRenameMode;
             set => SetProperty(ref _isProfileRenameMode, value);
+        }
+
+        /// <summary>Участвует в пакетном «Запуск активных конфигураций».</summary>
+        public bool IsActiveConfiguration
+        {
+            get => _isActiveConfiguration;
+            set => SetProperty(ref _isActiveConfiguration, value);
         }
 
         public ObservableCollection<string> ProfileNames { get; } = new ObservableCollection<string>();
@@ -239,7 +247,8 @@ namespace SP_CopyFromRSN.UI
         public RelayCommand CopySelectedLinkCommand { get; }
         public RelayCommand AddRunTimeCommand { get; }
         public RelayCommand RemoveRunTimeCommand { get; }
-        public RelayCommand RunNowCommand { get; }
+        public RelayCommand RunCurrentConfigCommand { get; }
+        public RelayCommand RunActiveConfigsCommand { get; }
         public RelayCommand BrowseFolderCommand { get; }
         public RelayCommand BrowseToolPathCommand { get; }
         public RelayCommand CopyStatusCommand { get; }
@@ -267,7 +276,8 @@ namespace SP_CopyFromRSN.UI
             CopySelectedLinkCommand = new RelayCommand(CopySelectedLink, () => SelectedLink != null);
             AddRunTimeCommand = new RelayCommand(AddRunTime, () => !IsBusy);
             RemoveRunTimeCommand = new RelayCommand(RemoveRunTime, () => !IsBusy && SelectedRunTime != null);
-            RunNowCommand = new RelayCommand(RunNow, () => !IsBusy);
+            RunCurrentConfigCommand = new RelayCommand(RunCurrentConfig, () => !IsBusy);
+            RunActiveConfigsCommand = new RelayCommand(RunActiveConfigs, () => !IsBusy);
             BrowseFolderCommand = new RelayCommand(BrowseFolder, () => !IsBusy);
             BrowseToolPathCommand = new RelayCommand(BrowseToolPath, () => !IsBusy);
             CopyStatusCommand = new RelayCommand(CopyStatus, () => !string.IsNullOrWhiteSpace(StatusText));
@@ -420,6 +430,7 @@ namespace SP_CopyFromRSN.UI
         private void ApplyProfileToUi(CopyFromRsnProfile profile)
         {
             ProfileName = profile.Name;
+            IsActiveConfiguration = profile.IsActiveConfiguration;
             SourceServer = profile.SourceServer;
             UseSourceRevitServer = profile.UseSourceRevitServer;
             TargetServer = profile.TargetServer;
@@ -457,6 +468,7 @@ namespace SP_CopyFromRSN.UI
             var profile = new CopyFromRsnProfile
             {
                 Name = ProfileName,
+                IsActiveConfiguration = IsActiveConfiguration,
                 SourceServer = SourceServer,
                 UseSourceRevitServer = UseSourceRevitServer,
                 TargetServer = TargetServer,
@@ -638,7 +650,7 @@ namespace SP_CopyFromRSN.UI
             OnPropertyChanged(nameof(CalendarHint));
         }
 
-        private void RunNow()
+        private void RunCurrentConfig()
         {
             try
             {
@@ -647,10 +659,61 @@ namespace SP_CopyFromRSN.UI
                 SaveProfile();
 
                 IsBusy = true;
-                StatusText = "Запуск копирования...";
+                StatusText = "Запуск текущей конфигурации «" + profile.Name + "»...";
 
                 // ExternalEvent работает независимо от окна (окно безмодальное)
                 CopyFromRsnApp.RaiseCopy(profile);
+            }
+            catch (Exception ex)
+            {
+                IsBusy = false;
+                StatusText = ex.Message;
+            }
+        }
+
+        private void RunActiveConfigs()
+        {
+            try
+            {
+                // Сначала сохраняем открытый профиль (в т.ч. галочку «Активная конфигурация»)
+                SaveProfile();
+
+                var profiles = new List<CopyFromRsnProfile>();
+                var skipped = new List<string>();
+
+                foreach (string name in CopyFromRsnProfileStorage.ListProfileNames(_revitVersion))
+                {
+                    CopyFromRsnProfile profile = CopyFromRsnProfileStorage.LoadProfile(_revitVersion, name);
+                    if (!profile.IsActiveConfiguration)
+                        continue;
+
+                    try
+                    {
+                        CopyFromRsnService.ValidateProfile(profile);
+                        profiles.Add(profile);
+                    }
+                    catch (Exception ex)
+                    {
+                        skipped.Add("«" + profile.Name + "»: " + ex.Message);
+                    }
+                }
+
+                if (profiles.Count == 0)
+                {
+                    string hint = skipped.Count > 0
+                        ? "Активные конфигурации не прошли проверку:\n" + string.Join("\n", skipped)
+                        : "Нет активных конфигураций. Отметьте галочку «Активная конфигурация» и сохраните профили.";
+                    MessageBox.Show(hint, "SP CopyFromRSN");
+                    StatusText = hint;
+                    return;
+                }
+
+                IsBusy = true;
+                StatusText = "Запуск активных конфигураций (" + profiles.Count + ")...";
+                if (skipped.Count > 0)
+                    StatusText += " Пропущено: " + skipped.Count + ".";
+
+                CopyFromRsnApp.RaiseCopy(profiles);
             }
             catch (Exception ex)
             {
@@ -769,7 +832,8 @@ namespace SP_CopyFromRSN.UI
             CopySelectedLinkCommand.NotifyCanExecuteChanged();
             AddRunTimeCommand.NotifyCanExecuteChanged();
             RemoveRunTimeCommand.NotifyCanExecuteChanged();
-            RunNowCommand.NotifyCanExecuteChanged();
+            RunCurrentConfigCommand.NotifyCanExecuteChanged();
+            RunActiveConfigsCommand.NotifyCanExecuteChanged();
             BrowseFolderCommand.NotifyCanExecuteChanged();
             BrowseToolPathCommand.NotifyCanExecuteChanged();
             CopyStatusCommand.NotifyCanExecuteChanged();

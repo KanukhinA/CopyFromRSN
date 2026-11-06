@@ -96,5 +96,8 @@ namespace SP_CopyFromRSN.App
 
         public static void RaiseCopy(CopyFromRsnProfile profile) =>
             CopyFromRsnRuntime.RaiseCopy(profile);
+
+        public static void RaiseCopy(System.Collections.Generic.IReadOnlyList<CopyFromRsnProfile> profiles) =>
+            CopyFromRsnRuntime.RaiseCopy(profiles);
     }
 }
