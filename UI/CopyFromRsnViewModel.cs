@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -239,6 +240,7 @@ namespace SP_CopyFromRSN.UI
         public RelayCommand RenameProfileCommand { get; }
         public RelayCommand ImportCsvCommand { get; }
         public RelayCommand ExportCsvCommand { get; }
+        public RelayCommand SwapSourceTargetCommand { get; }
         public RelayCommand AddModelCommand { get; }
         public RelayCommand RemoveModelCommand { get; }
         public RelayCommand CopySelectedModelCommand { get; }
@@ -251,6 +253,10 @@ namespace SP_CopyFromRSN.UI
         public RelayCommand RunActiveConfigsCommand { get; }
         public RelayCommand BrowseFolderCommand { get; }
         public RelayCommand BrowseToolPathCommand { get; }
+        public RelayCommand<ModelCopyEntry> BrowseModelSourcePathCommand { get; }
+        public RelayCommand<ModelCopyEntry> BrowseModelTargetPathCommand { get; }
+        public RelayCommand<LinkCopyEntry> BrowseLinkOldPathCommand { get; }
+        public RelayCommand<LinkCopyEntry> BrowseLinkNewPathCommand { get; }
         public RelayCommand CopyStatusCommand { get; }
 
         public CopyFromRsnViewModel(UIApplication uiApplication)
@@ -264,6 +270,7 @@ namespace SP_CopyFromRSN.UI
             RenameProfileCommand = new RelayCommand(ToggleProfileRenameMode, () => !IsBusy);
             ImportCsvCommand = new RelayCommand(ImportCsv, () => !IsBusy);
             ExportCsvCommand = new RelayCommand(ExportCsv, () => !IsBusy);
+            SwapSourceTargetCommand = new RelayCommand(SwapSourceTarget, () => !IsBusy);
             AddModelCommand = new RelayCommand(() => Models.Add(new ModelCopyEntry()), () => !IsBusy);
             RemoveModelCommand = new RelayCommand(
                 () => { if (SelectedModel != null) Models.Remove(SelectedModel); },
@@ -280,6 +287,14 @@ namespace SP_CopyFromRSN.UI
             RunActiveConfigsCommand = new RelayCommand(RunActiveConfigs, () => !IsBusy);
             BrowseFolderCommand = new RelayCommand(BrowseFolder, () => !IsBusy);
             BrowseToolPathCommand = new RelayCommand(BrowseToolPath, () => !IsBusy);
+            BrowseModelSourcePathCommand = new RelayCommand<ModelCopyEntry>(
+                BrowseModelSourcePath, model => !IsBusy && model != null);
+            BrowseModelTargetPathCommand = new RelayCommand<ModelCopyEntry>(
+                BrowseModelTargetPath, model => !IsBusy && model != null);
+            BrowseLinkOldPathCommand = new RelayCommand<LinkCopyEntry>(
+                BrowseLinkOldPath, link => !IsBusy && link != null);
+            BrowseLinkNewPathCommand = new RelayCommand<LinkCopyEntry>(
+                BrowseLinkNewPath, link => !IsBusy && link != null);
             CopyStatusCommand = new RelayCommand(CopyStatus, () => !string.IsNullOrWhiteSpace(StatusText));
 
             InitWeekDays();
@@ -342,24 +357,34 @@ namespace SP_CopyFromRSN.UI
 
             try
             {
-                var profile = BuildProfileFromUi();
+                // Слот расписания берётся у открытого профиля (как настроено во вкладке).
+                CopyFromRsnProfile scheduleProfile = BuildProfileFromUi();
                 DateTime now = DateTime.Now; // локальное время компьютера
 
-                DateTime? due = CopyFromRsnScheduleService.GetDueScheduledRun(now, profile);
+                DateTime? due = CopyFromRsnScheduleService.GetDueScheduledRun(now, scheduleProfile);
                 if (!due.HasValue)
                     return;
 
-                if (CopyFromRsnScheduleService.ReadLastScheduledRun(profile) >= due.Value)
+                if (CopyFromRsnScheduleService.ReadLastScheduledRun(scheduleProfile) >= due.Value)
                     return;
 
-                CopyFromRsnService.ValidateProfile(profile);
+                // По слоту — тот же пакет, что у кнопки «Запуск активных конфигураций».
+                List<CopyFromRsnProfile> profiles = CollectActiveProfiles(out List<string> skipped);
+                if (profiles.Count == 0)
+                {
+                    CopyFromRsnService.ValidateProfile(scheduleProfile);
+                    profiles.Add(scheduleProfile);
+                }
 
-                string? message = CopyFromRsnScheduleService.TryRaiseDueRun(profile, now);
+                string? message = CopyFromRsnScheduleService.TryRaiseDueRun(
+                    scheduleProfile, profiles, now);
                 if (message == null)
                     return;
 
                 IsBusy = true;
                 StatusText = message;
+                if (skipped.Count > 0)
+                    StatusText += " Пропущено: " + skipped.Count + ".";
             }
             catch (Exception ex)
             {
@@ -678,25 +703,7 @@ namespace SP_CopyFromRSN.UI
                 // Сначала сохраняем открытый профиль (в т.ч. галочку «Активная конфигурация»)
                 SaveProfile();
 
-                var profiles = new List<CopyFromRsnProfile>();
-                var skipped = new List<string>();
-
-                foreach (string name in CopyFromRsnProfileStorage.ListProfileNames(_revitVersion))
-                {
-                    CopyFromRsnProfile profile = CopyFromRsnProfileStorage.LoadProfile(_revitVersion, name);
-                    if (!profile.IsActiveConfiguration)
-                        continue;
-
-                    try
-                    {
-                        CopyFromRsnService.ValidateProfile(profile);
-                        profiles.Add(profile);
-                    }
-                    catch (Exception ex)
-                    {
-                        skipped.Add("«" + profile.Name + "»: " + ex.Message);
-                    }
-                }
+                List<CopyFromRsnProfile> profiles = CollectActiveProfiles(out List<string> skipped);
 
                 if (profiles.Count == 0)
                 {
@@ -720,6 +727,86 @@ namespace SP_CopyFromRSN.UI
                 IsBusy = false;
                 StatusText = ex.Message;
             }
+        }
+
+        /// <summary>
+        /// Собирает профили с галочкой «Активная конфигурация».
+        /// Для открытого профиля берёт состояние из UI (включая несохранённые правки).
+        /// </summary>
+        private List<CopyFromRsnProfile> CollectActiveProfiles(out List<string> skipped)
+        {
+            skipped = new List<string>();
+            var profiles = new List<CopyFromRsnProfile>();
+            CopyFromRsnProfile current = BuildProfileFromUi();
+            bool currentConsidered = false;
+
+            foreach (string name in CopyFromRsnProfileStorage.ListProfileNames(_revitVersion))
+            {
+                bool isOpenProfile =
+                    string.Equals(name, _loadedProfileName, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, current.Name, StringComparison.OrdinalIgnoreCase);
+
+                CopyFromRsnProfile profile = isOpenProfile
+                    ? current
+                    : CopyFromRsnProfileStorage.LoadProfile(_revitVersion, name);
+
+                if (isOpenProfile)
+                    currentConsidered = true;
+
+                if (!profile.IsActiveConfiguration)
+                    continue;
+
+                try
+                {
+                    CopyFromRsnService.ValidateProfile(profile);
+                    profiles.Add(profile);
+                }
+                catch (Exception ex)
+                {
+                    skipped.Add("«" + profile.Name + "»: " + ex.Message);
+                }
+            }
+
+            // Новый ещё не сохранённый профиль с галочкой «Активная»
+            if (!currentConsidered && current.IsActiveConfiguration)
+            {
+                try
+                {
+                    CopyFromRsnService.ValidateProfile(current);
+                    profiles.Add(current);
+                }
+                catch (Exception ex)
+                {
+                    skipped.Add("«" + current.Name + "»: " + ex.Message);
+                }
+            }
+
+            return profiles;
+        }
+
+        /// <summary>
+        /// Меняет местами исходный ↔ целевой: серверы, флаги Revit Server и пути в таблице моделей.
+        /// </summary>
+        private void SwapSourceTarget()
+        {
+            CommitPendingTextEdits();
+
+            string server = SourceServer;
+            SourceServer = TargetServer;
+            TargetServer = server;
+
+            bool useServer = UseSourceRevitServer;
+            UseSourceRevitServer = UseTargetRevitServer;
+            UseTargetRevitServer = useServer;
+
+            foreach (ModelCopyEntry model in Models)
+            {
+                string path = model.SourcePath;
+                model.SourcePath = model.TargetPath;
+                model.TargetPath = path;
+            }
+
+            StatusText = "Исходный и целевой поменяны местами.";
         }
 
         private void CopySelectedModel()
@@ -797,6 +884,126 @@ namespace SP_CopyFromRSN.UI
                 RevitServerToolPath = dialog.FileName;
         }
 
+        private void BrowseModelSourcePath(ModelCopyEntry? model)
+        {
+            if (model == null)
+                return;
+
+            string? path = BrowseRvtPath(
+                "Выберите исходный файл модели",
+                model.SourcePath,
+                checkFileExists: true);
+            if (path != null)
+                model.SourcePath = path;
+        }
+
+        private void BrowseModelTargetPath(ModelCopyEntry? model)
+        {
+            if (model == null)
+                return;
+
+            // Целевой файл может ещё не существовать — не требуем наличия на диске.
+            string? path = BrowseRvtPath(
+                "Выберите целевой файл модели",
+                model.TargetPath,
+                checkFileExists: false);
+            if (path != null)
+                model.TargetPath = path;
+        }
+
+        private void BrowseLinkOldPath(LinkCopyEntry? link)
+        {
+            if (link == null)
+                return;
+
+            string? path = BrowseRvtPath(
+                "Выберите старый путь связанного файла",
+                link.OldPath,
+                checkFileExists: false);
+            if (path != null)
+                link.OldPath = path;
+        }
+
+        private void BrowseLinkNewPath(LinkCopyEntry? link)
+        {
+            if (link == null)
+                return;
+
+            string? path = BrowseRvtPath(
+                "Выберите новый путь связанного файла",
+                link.NewPath,
+                checkFileExists: false);
+            if (path != null)
+                link.NewPath = path;
+        }
+
+        /// <summary>
+        /// Диалог выбора .rvt в проводнике Windows.
+        /// Для RSN-путей пользователь по-прежнему может ввести путь вручную в ячейке.
+        /// </summary>
+        private static string? BrowseRvtPath(string title, string currentPath, bool checkFileExists)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = title,
+                Filter = "Revit models (*.rvt)|*.rvt|Все файлы (*.*)|*.*",
+                CheckFileExists = checkFileExists,
+                CheckPathExists = false
+            };
+
+            string? initialDirectory = TryGetInitialDirectory(currentPath);
+            if (!string.IsNullOrWhiteSpace(initialDirectory))
+                dialog.InitialDirectory = initialDirectory;
+
+            string? fileName = TryGetFileName(currentPath);
+            if (!string.IsNullOrWhiteSpace(fileName))
+                dialog.FileName = fileName;
+
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
+
+        private static string? TryGetInitialDirectory(string path)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(path))
+                    return null;
+
+                string trimmed = path.Trim();
+                if (File.Exists(trimmed))
+                    return Path.GetDirectoryName(trimmed);
+
+                if (Directory.Exists(trimmed))
+                    return trimmed;
+
+                string? directory = Path.GetDirectoryName(trimmed);
+                if (!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory))
+                    return directory;
+            }
+            catch
+            {
+                // Невалидный путь (например RSN://...) — стартуем из каталога по умолчанию.
+            }
+
+            return null;
+        }
+
+        private static string? TryGetFileName(string path)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(path))
+                    return null;
+
+                string name = Path.GetFileName(path.Trim());
+                return string.IsNullOrWhiteSpace(name) ? null : name;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         private void OnRuntimeStatusChanged(string message) =>
             DispatchUi(() => StatusText = message);
 
@@ -824,6 +1031,7 @@ namespace SP_CopyFromRSN.UI
             RenameProfileCommand.NotifyCanExecuteChanged();
             ImportCsvCommand.NotifyCanExecuteChanged();
             ExportCsvCommand.NotifyCanExecuteChanged();
+            SwapSourceTargetCommand.NotifyCanExecuteChanged();
             AddModelCommand.NotifyCanExecuteChanged();
             RemoveModelCommand.NotifyCanExecuteChanged();
             CopySelectedModelCommand.NotifyCanExecuteChanged();
@@ -836,6 +1044,10 @@ namespace SP_CopyFromRSN.UI
             RunActiveConfigsCommand.NotifyCanExecuteChanged();
             BrowseFolderCommand.NotifyCanExecuteChanged();
             BrowseToolPathCommand.NotifyCanExecuteChanged();
+            BrowseModelSourcePathCommand.NotifyCanExecuteChanged();
+            BrowseModelTargetPathCommand.NotifyCanExecuteChanged();
+            BrowseLinkOldPathCommand.NotifyCanExecuteChanged();
+            BrowseLinkNewPathCommand.NotifyCanExecuteChanged();
             CopyStatusCommand.NotifyCanExecuteChanged();
         }
     }

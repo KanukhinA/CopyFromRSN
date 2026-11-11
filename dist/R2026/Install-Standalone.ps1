@@ -1,4 +1,4 @@
-﻿\xef\xbb\xbf$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $src = $PSScriptRoot
 $dest = Join-Path $env:APPDATA "Autodesk\Revit\Addins\2026"
 # Переустановка: сначала убираем старые файлы плагина в этой версии Revit

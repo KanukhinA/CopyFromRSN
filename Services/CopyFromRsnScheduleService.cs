@@ -69,24 +69,45 @@ namespace SP_CopyFromRSN.Services
         /// Время — локальные часы компьютера (DateTime.Now).
         /// </summary>
         /// <returns>Сообщение для статуса или null, если запускать нечего.</returns>
-        public static string? TryRaiseDueRun(CopyFromRsnProfile profile, DateTime now)
+        public static string? TryRaiseDueRun(CopyFromRsnProfile profile, DateTime now) =>
+            TryRaiseDueRun(profile, new[] { profile }, now);
+
+        /// <summary>
+        /// Как <see cref="TryRaiseDueRun(CopyFromRsnProfile, DateTime)"/>, но в очередь
+        /// ставится пакет профилей (например все «Активные конфигурации»).
+        /// Слот расписания и state-файл берутся у <paramref name="scheduleProfile"/>.
+        /// </summary>
+        public static string? TryRaiseDueRun(
+            CopyFromRsnProfile scheduleProfile,
+            IReadOnlyList<CopyFromRsnProfile> profilesToRun,
+            DateTime now)
         {
+            if (scheduleProfile == null)
+                return null;
+
             if (CopyFromRsnRuntime.IsRunning)
                 return null;
 
-            DateTime? due = GetDueScheduledRun(now, profile);
+            DateTime? due = GetDueScheduledRun(now, scheduleProfile);
             if (!due.HasValue)
                 return null;
 
-            if (ReadLastScheduledRun(profile) >= due.Value)
+            if (ReadLastScheduledRun(scheduleProfile) >= due.Value)
                 return null;
+
+            IReadOnlyList<CopyFromRsnProfile> batch =
+                profilesToRun != null && profilesToRun.Count > 0
+                    ? profilesToRun
+                    : new[] { scheduleProfile };
 
             string message = "Запуск по расписанию " + due.Value.ToString("yyyy-MM-dd HH:mm") +
                              " (время компьютера).";
+            if (batch.Count > 1)
+                message += " Активных конфигураций: " + batch.Count + ".";
 
             try
             {
-                CopyFromRsnRuntime.RaiseCopy(profile);
+                CopyFromRsnRuntime.RaiseCopy(batch);
             }
             catch (InvalidOperationException)
             {
@@ -95,8 +116,8 @@ namespace SP_CopyFromRSN.Services
             }
 
             // State пишем только после успешной постановки в очередь, иначе слот «сгорает»
-            WriteLastScheduledRun(profile, due.Value);
-            CopyFromRsnService.LogStatic(profile.LocalDownloadFolder, message);
+            WriteLastScheduledRun(scheduleProfile, due.Value);
+            CopyFromRsnService.LogStatic(scheduleProfile.LocalDownloadFolder, message);
             return message;
         }
 

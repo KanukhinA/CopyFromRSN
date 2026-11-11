@@ -1,4 +1,4 @@
-\xef\xbb\xbf﻿# Сборка дистрибутива SP_CopyFromRSN
+﻿# Сборка дистрибутива SP_CopyFromRSN
 param(
     [switch]$SkipBuild,
     [switch]$SkipInstaller
@@ -36,7 +36,10 @@ foreach ($cfg in $configs) {
     # иначе PowerShell 5.1 без BOM читает кириллицу как CP1251.
     $installTemplatePath = Join-Path $PSScriptRoot 'Install-Standalone.template.ps1'
     $utf8Bom = New-Object System.Text.UTF8Encoding $true
-    $ps1 = [System.IO.File]::ReadAllText($installTemplatePath, $utf8Bom).Replace('{{YEAR}}', $year)
+    # Читаем шаблон как UTF-8; отбрасываем BOM и случайный текстовый префикс \xef\xbb\xbf
+    $ps1 = [System.IO.File]::ReadAllText($installTemplatePath, $utf8Bom).TrimStart([char]0xFEFF)
+    if ($ps1.StartsWith('\xef\xbb\xbf')) { $ps1 = $ps1.Substring(12) }
+    $ps1 = $ps1.Replace('{{YEAR}}', $year)
     [System.IO.File]::WriteAllText((Join-Path $dest 'Install-Standalone.ps1'), $ps1, $utf8Bom)
 }
 

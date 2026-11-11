@@ -233,7 +233,7 @@
                         <Grid Grid.Row="0" Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel>
@@ -246,6 +246,15 @@
                                          IsEnabled="{Binding UseSourceRevitServer}"
                                          ToolTip="Используется только если в таблице указан относительный путь на RSN"/>
                             </StackPanel>
+                            <Button Grid.Column="1"
+                                    Style="{StaticResource RoundedButtonStyle}"
+                                    Content="⇄"
+                                    Width="36" Height="36"
+                                    Margin="8,0"
+                                    VerticalAlignment="Center"
+                                    FontSize="18"
+                                    Command="{Binding SwapSourceTargetCommand}"
+                                    ToolTip="Поменять местами исходный и целевой (серверы, галочки Revit Server и пути в таблице)"/>
                             <StackPanel Grid.Column="2">
                                 <CheckBox Content="Revit Server"
                                           IsChecked="{Binding UseTargetRevitServer, Mode=TwoWay}"
@@ -261,7 +270,7 @@
                                    TextWrapping="Wrap"
                                    Foreground="#FF5A6570"
                                    FontStyle="Italic"
-                                   Text="В таблице ниже можно указывать относительный путь на RSN, полный путь вида RSN://server/... или обычный файловый путь C:\...\model.rvt / \\server\share\...\model.rvt. Галочка Revit Server нужна только для относительных RSN-путей."/>
+                                   Text="В таблице ниже можно указывать относительный путь на RSN, полный путь вида RSN://server/... или обычный файловый путь C:\...\model.rvt / \\server\share\...\model.rvt. Файловый путь можно выбрать кнопкой «…». Галочка Revit Server нужна только для относительных RSN-путей."/>
                         <DataGrid Grid.Row="2"
                                   ItemsSource="{Binding Models}"
                                   SelectedItem="{Binding SelectedModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -283,12 +292,48 @@
                                 </ContextMenu>
                             </DataGrid.ContextMenu>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Исходный путь к модели"
-                                                    Binding="{Binding SourcePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                    Width="*"/>
-                                <DataGridTextColumn Header="Целевой путь к модели"
-                                                    Binding="{Binding TargetPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                    Width="*"/>
+                                <DataGridTemplateColumn Header="Исходный путь к модели" Width="*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox Text="{Binding SourcePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=False}"
+                                                         BorderThickness="0" Background="Transparent"
+                                                         VerticalContentAlignment="Center"
+                                                         ToolTip="Можно вставить путь вручную или выбрать файл кнопкой «…»"/>
+                                                <Button Grid.Column="1" Style="{StaticResource RoundedButtonStyle}"
+                                                        Content="…" Width="28" Height="22" Margin="4,0,2,0"
+                                                        ToolTip="Указать исходный файл в проводнике Windows"
+                                                        Command="{Binding DataContext.BrowseModelSourcePathCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Целевой путь к модели" Width="*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox Text="{Binding TargetPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=False}"
+                                                         BorderThickness="0" Background="Transparent"
+                                                         VerticalContentAlignment="Center"
+                                                         ToolTip="Можно вставить путь вручную или выбрать файл кнопкой «…»"/>
+                                                <Button Grid.Column="1" Style="{StaticResource RoundedButtonStyle}"
+                                                        Content="…" Width="28" Height="22" Margin="4,0,2,0"
+                                                        ToolTip="Указать целевой файл в проводнике Windows"
+                                                        Command="{Binding DataContext.BrowseModelTargetPathCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                         <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
@@ -329,8 +374,48 @@
                             </DataGrid.ContextMenu>
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Модель" Binding="{Binding ModelName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="160"/>
-                                <DataGridTextColumn Header="Старый путь" Binding="{Binding OldPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
-                                <DataGridTextColumn Header="Новый путь" Binding="{Binding NewPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                                <DataGridTemplateColumn Header="Старый путь" Width="*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox Text="{Binding OldPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=False}"
+                                                         BorderThickness="0" Background="Transparent"
+                                                         VerticalContentAlignment="Center"
+                                                         ToolTip="Можно вставить путь вручную или выбрать файл кнопкой «…»"/>
+                                                <Button Grid.Column="1" Style="{StaticResource RoundedButtonStyle}"
+                                                        Content="…" Width="28" Height="22" Margin="4,0,2,0"
+                                                        ToolTip="Указать старый путь в проводнике Windows"
+                                                        Command="{Binding DataContext.BrowseLinkOldPathCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Новый путь" Width="*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox Text="{Binding NewPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=False}"
+                                                         BorderThickness="0" Background="Transparent"
+                                                         VerticalContentAlignment="Center"
+                                                         ToolTip="Можно вставить путь вручную или выбрать файл кнопкой «…»"/>
+                                                <Button Grid.Column="1" Style="{StaticResource RoundedButtonStyle}"
+                                                        Content="…" Width="28" Height="22" Margin="4,0,2,0"
+                                                        ToolTip="Указать новый путь в проводнике Windows"
+                                                        Command="{Binding DataContext.BrowseLinkNewPathCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
@@ -360,7 +445,7 @@
                                           IsChecked="{Binding ScheduleEnabled, Mode=TwoWay}"/>
                                 <TextBlock TextWrapping="Wrap" Margin="0,8,0,0"
                                            Foreground="#FF5A6570" FontStyle="Italic"
-                                           Text="Автозапуск идёт по локальному времени компьютера. Чтобы он сработал, окно плагина нужно держать открытым — после закрытия расписание не проверяется."/>
+                                           Text="Автозапуск идёт по локальному времени компьютера. В назначенный слот запускаются все профили с галочкой «Активная конфигурация» (как кнопка «Запуск активных конфигураций»); если активных нет — текущий профиль. Окно плагина нужно держать открытым."/>
                             </StackPanel>
                             <!-- Календарь, дни и время — в одной строке, без пустого места посередине -->
                             <StackPanel Grid.Row="1">
