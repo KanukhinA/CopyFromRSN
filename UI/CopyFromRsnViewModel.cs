@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -258,6 +259,7 @@ namespace SP_CopyFromRSN.UI
         public RelayCommand<LinkCopyEntry> BrowseLinkOldPathCommand { get; }
         public RelayCommand<LinkCopyEntry> BrowseLinkNewPathCommand { get; }
         public RelayCommand CopyStatusCommand { get; }
+        public RelayCommand OpenLogsFolderCommand { get; }
 
         public CopyFromRsnViewModel(UIApplication uiApplication)
         {
@@ -296,6 +298,7 @@ namespace SP_CopyFromRSN.UI
             BrowseLinkNewPathCommand = new RelayCommand<LinkCopyEntry>(
                 BrowseLinkNewPath, link => !IsBusy && link != null);
             CopyStatusCommand = new RelayCommand(CopyStatus, () => !string.IsNullOrWhiteSpace(StatusText));
+            OpenLogsFolderCommand = new RelayCommand(OpenLogsFolder);
 
             InitWeekDays();
             RefreshProfileList();
@@ -382,15 +385,18 @@ namespace SP_CopyFromRSN.UI
                     return;
 
                 IsBusy = true;
-                StatusText = message;
+                string start = message;
                 if (skipped.Count > 0)
-                    StatusText += " Пропущено: " + skipped.Count + ".";
+                    start += " Пропущено: " + skipped.Count + ".";
+                BeginConsoleSession(start);
+                foreach (string item in skipped)
+                    AppendConsole(item, isError: true);
             }
             catch (Exception ex)
             {
                 // Показываем причину один раз на слот (без спама каждый тик — state ещё не записан,
                 // поэтому при постоянной ошибке валидации будет повторяться; это ожидаемо)
-                StatusText = "Расписание: " + ex.Message;
+                AppendConsole("Расписание: " + ex.Message, isError: true);
             }
         }
 
@@ -684,7 +690,7 @@ namespace SP_CopyFromRSN.UI
                 SaveProfile();
 
                 IsBusy = true;
-                StatusText = "Запуск текущей конфигурации «" + profile.Name + "»...";
+                BeginConsoleSession("Запуск текущей конфигурации «" + profile.Name + "»...");
 
                 // ExternalEvent работает независимо от окна (окно безмодальное)
                 CopyFromRsnApp.RaiseCopy(profile);
@@ -692,7 +698,7 @@ namespace SP_CopyFromRSN.UI
             catch (Exception ex)
             {
                 IsBusy = false;
-                StatusText = ex.Message;
+                AppendConsole(ex.Message, isError: true);
             }
         }
 
@@ -711,21 +717,25 @@ namespace SP_CopyFromRSN.UI
                         ? "Активные конфигурации не прошли проверку:\n" + string.Join("\n", skipped)
                         : "Нет активных конфигураций. Отметьте галочку «Активная конфигурация» и сохраните профили.";
                     MessageBox.Show(hint, "SP CopyFromRSN");
-                    StatusText = hint;
+                    AppendConsole(hint, isError: true);
                     return;
                 }
 
                 IsBusy = true;
-                StatusText = "Запуск активных конфигураций (" + profiles.Count + ")...";
+                string start =
+                    "Запуск активных конфигураций (" + profiles.Count + ")...";
                 if (skipped.Count > 0)
-                    StatusText += " Пропущено: " + skipped.Count + ".";
+                    start += " Пропущено: " + skipped.Count + ".";
+                BeginConsoleSession(start);
+                foreach (string item in skipped)
+                    AppendConsole(item, isError: true);
 
                 CopyFromRsnApp.RaiseCopy(profiles);
             }
             catch (Exception ex)
             {
                 IsBusy = false;
-                StatusText = ex.Message;
+                AppendConsole(ex.Message, isError: true);
             }
         }
 
@@ -833,13 +843,59 @@ namespace SP_CopyFromRSN.UI
             CopyTextToClipboard(StatusText);
         }
 
+        private void OpenLogsFolder()
+        {
+            try
+            {
+                string folder = string.IsNullOrWhiteSpace(LocalDownloadFolder)
+                    ? @"C:\Temp\"
+                    : LocalDownloadFolder.Trim();
+
+                Directory.CreateDirectory(folder);
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = folder,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                AppendConsole("Не удалось открыть папку логов: " + ex.Message, isError: true);
+            }
+        }
+
+        /// <summary>Начинает сессию консоли для нового запуска (очищает предыдущий вывод).</summary>
+        private void BeginConsoleSession(string message)
+        {
+            StatusText = message ?? string.Empty;
+            CopyStatusCommand.NotifyCanExecuteChanged();
+        }
+
+        /// <summary>
+        /// Добавляет строку в консоль. Ошибки помечаются префиксом ERROR и не теряются
+        /// при последующих статусных сообщениях.
+        /// </summary>
+        private void AppendConsole(string message, bool isError = false)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+                return;
+
+            string line = isError ? "ERROR: " + message.Trim() : message.Trim();
+            if (string.IsNullOrWhiteSpace(StatusText))
+                StatusText = line;
+            else
+                StatusText += Environment.NewLine + line;
+
+            CopyStatusCommand.NotifyCanExecuteChanged();
+        }
+
         private void CopyTextToClipboard(string text)
         {
             try
             {
                 Clipboard.SetText(text);
                 string previous = StatusText;
-                StatusText = "Скопировано в буфер обмена.";
+                StatusText = previous + Environment.NewLine + "Скопировано в буфер обмена.";
                 var timer = new DispatcherTimer
                 {
                     Interval = TimeSpan.FromSeconds(1.5)
@@ -847,14 +903,14 @@ namespace SP_CopyFromRSN.UI
                 timer.Tick += (_, __) =>
                 {
                     timer.Stop();
-                    if (StatusText == "Скопировано в буфер обмена.")
+                    if (StatusText == previous + Environment.NewLine + "Скопировано в буфер обмена.")
                         StatusText = previous;
                 };
                 timer.Start();
             }
             catch
             {
-                StatusText = "Не удалось скопировать в буфер обмена.";
+                AppendConsole("Не удалось скопировать в буфер обмена.", isError: true);
             }
         }
 
@@ -1004,14 +1060,42 @@ namespace SP_CopyFromRSN.UI
             }
         }
 
-        private void OnRuntimeStatusChanged(string message) =>
-            DispatchUi(() => StatusText = message);
+        private void OnRuntimeStatusChanged(string message, bool isError) =>
+            DispatchUi(() =>
+            {
+                // Ошибки накапливаем сразу; обычный прогресс — одна текущая строка,
+                // пока в консоли ещё нет ERROR (иначе дописываем прогресс ниже ошибок).
+                if (isError)
+                {
+                    AppendConsole(message, isError: true);
+                    return;
+                }
+
+                if (StatusText != null &&
+                    StatusText.IndexOf("ERROR:", StringComparison.Ordinal) >= 0)
+                {
+                    AppendConsole(message, isError: false);
+                    return;
+                }
+
+                StatusText = message ?? string.Empty;
+                CopyStatusCommand.NotifyCanExecuteChanged();
+            });
 
         private void OnRunCompleted(string result, bool isError) =>
             DispatchUi(() =>
             {
                 IsBusy = false;
-                StatusText = result;
+                // Итог Execute уже содержит блок «Ошибки: …» — показываем его целиком.
+                StatusText = result ?? string.Empty;
+                if (isError &&
+                    StatusText.IndexOf("ERROR:", StringComparison.Ordinal) < 0 &&
+                    StatusText.IndexOf("Ошибки:", StringComparison.Ordinal) < 0)
+                {
+                    StatusText = "ERROR: " + StatusText;
+                }
+
+                CopyStatusCommand.NotifyCanExecuteChanged();
             });
 
         private void DispatchUi(Action action)
@@ -1049,6 +1133,7 @@ namespace SP_CopyFromRSN.UI
             BrowseLinkOldPathCommand.NotifyCanExecuteChanged();
             BrowseLinkNewPathCommand.NotifyCanExecuteChanged();
             CopyStatusCommand.NotifyCanExecuteChanged();
+            OpenLogsFolderCommand.NotifyCanExecuteChanged();
         }
     }
 }

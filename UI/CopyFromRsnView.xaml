@@ -501,25 +501,42 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Консоль"
+                               FontFamily="Arial Narrow"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="#FF005E96"
+                               Margin="0,0,0,4"/>
                     <!-- Выделяемый текст — можно копировать Ctrl+C -->
-                    <TextBox Text="{Binding StatusText, Mode=OneWay}"
+                    <TextBox Grid.Row="1"
+                             Text="{Binding StatusText, Mode=OneWay}"
                              IsReadOnly="True"
                              TextWrapping="Wrap"
                              AcceptsReturn="True"
                              BorderThickness="0"
                              Background="Transparent"
-                             FontFamily="Arial Narrow"
-                             FontSize="13"
+                             FontFamily="Consolas, Courier New, Arial Narrow"
+                             FontSize="12"
                              MinHeight="140"
                              MaxHeight="240"
                              VerticalScrollBarVisibility="Auto"
                              HorizontalScrollBarVisibility="Disabled"
-                             ToolTip="Выделите текст и скопируйте (Ctrl+C)"/>
-                    <Button Grid.Column="1" Style="{StaticResource RoundedButtonStyle}"
-                            Content="Копировать" MinWidth="90" Height="26" Margin="8,0,0,0"
-                            VerticalAlignment="Top"
-                            Command="{Binding CopyStatusCommand}"
-                            ToolTip="Скопировать текст статуса/ошибки в буфер обмена"/>
+                             ToolTip="Консоль запуска: ошибки и итог. Можно выделить и скопировать (Ctrl+C)"/>
+                    <StackPanel Grid.Column="1" Grid.Row="0" Grid.RowSpan="2"
+                                Margin="8,0,0,0" VerticalAlignment="Top">
+                        <Button Style="{StaticResource RoundedButtonStyle}"
+                                Content="Копировать" MinWidth="110" Height="26" Margin="0,0,0,6"
+                                Command="{Binding CopyStatusCommand}"
+                                ToolTip="Скопировать текст консоли в буфер обмена"/>
+                        <Button Style="{StaticResource RoundedButtonStyle}"
+                                Content="Папка логов" MinWidth="110" Height="26"
+                                Command="{Binding OpenLogsFolderCommand}"
+                                ToolTip="Открыть папку загрузки с файлами журнала CopyFiles2RSN_*.log"/>
+                    </StackPanel>
                 </Grid>
             </Border>
 

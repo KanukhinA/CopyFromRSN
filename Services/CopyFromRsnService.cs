@@ -33,7 +33,9 @@ namespace SP_CopyFromRSN.Services
 
             List<ModelCopyRow> models = BuildModelRows();
             List<string> skippedModels;
-            Dictionary<string, string> localPaths = PrepareLocalModelCopies(models, out skippedModels);
+            List<string> consoleErrors;
+            Dictionary<string, string> localPaths =
+                PrepareLocalModelCopies(models, out skippedModels, out consoleErrors);
 
             if (_profile.RepathLinks)
                 RepathExternalLinks(localPaths, BuildLinkRows());
@@ -71,7 +73,10 @@ namespace SP_CopyFromRSN.Services
                     catch (Exception exception)
                     {
                         failedCount++;
+                        string error =
+                            "Ошибка обработки " + model.ModelName + ": " + exception.Message;
                         Log("Ошибка обработки " + model.ModelName + ": " + exception, true);
+                        consoleErrors.Add(error);
                     }
                 }
             }
@@ -79,7 +84,13 @@ namespace SP_CopyFromRSN.Services
             string result =
                 "Обработка завершена. Сохранено: " + savedCount +
                 ", ошибок: " + failedCount + ".";
-            Log(result);
+            if (consoleErrors.Count > 0)
+            {
+                result += Environment.NewLine + Environment.NewLine + "Ошибки:" +
+                          Environment.NewLine + string.Join(Environment.NewLine, consoleErrors);
+            }
+
+            Log(result.Replace(Environment.NewLine, " | "));
 
             // О пропущенных моделях сообщаем отдельным диалогом, не прерывая процесс.
             if (skippedModels.Count > 0)
@@ -87,7 +98,7 @@ namespace SP_CopyFromRSN.Services
                 Autodesk.Revit.UI.TaskDialog.Show(
                     "SP CopyFromRSN",
                     "Эти модели не найдены по указанным путям и пропущены " +
-                    "(подробности в журнале):\n\n" + string.Join("\n", skippedModels));
+                    "(подробности в консоли и журнале):\n\n" + string.Join("\n", skippedModels));
             }
 
             return result;
@@ -193,10 +204,12 @@ namespace SP_CopyFromRSN.Services
         /// </summary>
         private Dictionary<string, string> PrepareLocalModelCopies(
             List<ModelCopyRow> models,
-            out List<string> skippedModels)
+            out List<string> skippedModels,
+            out List<string> consoleErrors)
         {
             var localPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             skippedModels = new List<string>();
+            consoleErrors = new List<string>();
             Directory.CreateDirectory(_profile.LocalDownloadFolder);
 
             // Как в Dynamo: -d — папка со слэшем «/» (не полный путь к .rvt)
@@ -246,9 +259,10 @@ namespace SP_CopyFromRSN.Services
                         // Ошибка удаления временного файла не критична
                     }
 
-                    Log(
-                        "Модель " + model.ModelName + " пропущена: " + exception.Message,
-                        true);
+                    string error =
+                        "Модель " + model.ModelName + " пропущена: " + exception.Message;
+                    Log(error, true);
+                    consoleErrors.Add(error);
                     skippedModels.Add(model.ModelName + " (" + model.SourcePath + ")");
                 }
             }

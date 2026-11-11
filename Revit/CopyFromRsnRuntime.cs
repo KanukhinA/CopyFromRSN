@@ -22,11 +22,13 @@ namespace SP_CopyFromRSN.Revit
 
         public static bool IsRunning { get; set; }
 
-        public static event Action<string>? StatusChanged;
+        /// <summary>Прогресс/сообщения в консоль UI. Второй аргумент — ошибка.</summary>
+        public static event Action<string, bool>? StatusChanged;
 
         public static event Action<string, bool>? RunCompleted;
 
-        public static void RaiseStatus(string message) => StatusChanged?.Invoke(message);
+        public static void RaiseStatus(string message, bool isError = false) =>
+            StatusChanged?.Invoke(message, isError);
 
         public static void RaiseRunCompleted(string result, bool isError) =>
             RunCompleted?.Invoke(result, isError);
@@ -168,7 +170,7 @@ namespace SP_CopyFromRSN.Revit
                 (message, isError) =>
                 {
                     CopyFromRsnService.LogStatic(profile.LocalDownloadFolder, message, isError);
-                    RaiseStatus("[" + profile.Name + "] " + message);
+                    RaiseStatus("[" + profile.Name + "] " + message, isError);
                 });
 
             if (profile.SuppressOpenWarnings)
